@@ -27,6 +27,17 @@ func (r AuthenRepositoryDb) Login(user *user.User) error {
 	return nil
 }
 
+// ReadUserByID obviously to read by id
+func (r AuthenRepositoryDb) ReadUserByID(id string, user *user.User) error {
+	row := r.db.QueryRow(`SELECT id, name, email, gender, created_at, updated_at, deleted_at FROM users WHERE id=$1`,
+		id)
+	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Gender, &user.CreatedAt, &user.UpdatedAt, &user.DeletedAt)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Update only name and gender could be updated
 func (r AuthenRepositoryDb) Update(user *user.User, id string) error {
 	var name string
@@ -45,7 +56,7 @@ func (r AuthenRepositoryDb) Update(user *user.User, id string) error {
 	return nil
 }
 
-//Delete This function to delete a user/talent
+//Delete This function to delete a user by id
 func (r AuthenRepositoryDb) Delete(id string) error {
 	var usrType string
 	row := r.db.QueryRow(`SELECT first_name FROM users WHERE id= $1`, id)
@@ -57,16 +68,6 @@ func (r AuthenRepositoryDb) Delete(id string) error {
 	_, err = r.db.Exec(`DELETE FROM users WHERE id=$1`, id)
 	if err != nil {
 		fmt.Println(err)
-		return err
-	}
-	return nil
-}
-
-func (r AuthenRepositoryDb) ReadUserByID(id string, user *user.User) error {
-	row := r.db.QueryRow(`SELECT id, name, email, gender, created_at, updated_at, deleted_at FROM users WHERE id=$1`,
-		id)
-	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Gender, &user.CreatedAt, &user.UpdatedAt, &user.DeletedAt)
-	if err != nil {
 		return err
 	}
 	return nil
