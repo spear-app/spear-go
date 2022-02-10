@@ -28,9 +28,9 @@ func (r AuthenRepositoryDb) Login(user *user.User) error {
 }
 
 // ReadUserByID obviously to read by id
-func (r AuthenRepositoryDb) ReadUserByID(id string, user *user.User) error {
+func (r AuthenRepositoryDb) ReadUserByID(user *user.User) error {
 	row := r.db.QueryRow(`SELECT id, name, email, gender, created_at, updated_at, deleted_at FROM users WHERE id=$1`,
-		id)
+		user.ID)
 	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Gender, &user.CreatedAt, &user.UpdatedAt, &user.DeletedAt)
 	if err != nil {
 		return err
@@ -39,16 +39,16 @@ func (r AuthenRepositoryDb) ReadUserByID(id string, user *user.User) error {
 }
 
 // Update only name and gender could be updated
-func (r AuthenRepositoryDb) Update(user *user.User, id string) error {
+func (r AuthenRepositoryDb) Update(user *user.User) error {
 	var name string
-	row := r.db.QueryRow(`SELECT name FROM users WHERE id= $1`, id)
+	row := r.db.QueryRow(`SELECT name FROM users WHERE id= $1`, user.ID)
 	err := row.Scan(&name)
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
 	_, err = r.db.Exec(`UPDATE users SET name=$1, gender=$2 WHERE id=$3`,
-		user.Name, user.Gender, id)
+		user.Name, user.Gender, user.ID)
 	if err != nil {
 		fmt.Println(err)
 		return err

@@ -11,7 +11,7 @@ type Authen struct {
 type AuthenRepository interface {
 	Signup(user *user.User) error
 	Login(user *user.User) error
-	Show(user *user.User) error
-	Update(user *user.User, id string) error
-	Delete(string) error
+	ReadUserByID(user *user.User) error
+	Update(user *user.User) error
+	Delete(id string) error
 }
