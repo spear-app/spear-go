@@ -89,6 +89,7 @@ func (authenHandler AuthenHandlers) Signup(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(data)
 }
+
 func (authenHandler AuthenHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	var auth authen.Authen
@@ -106,7 +107,7 @@ func (authenHandler AuthenHandlers) Login(w http.ResponseWriter, r *http.Request
 	//handling errors
 	if err != nil {
 		if err == sql.ErrNoRows {
-			w.WriteHeader(http.StatusUnauthorized)
+			w.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(w).Encode(errs.NewResponse("No record found", http.StatusNotFound))
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)

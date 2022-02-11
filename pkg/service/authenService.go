@@ -36,3 +36,7 @@ func (s DefaultAuthenService) Update(user *user.User) error {
 func (s DefaultAuthenService) Delete(id string) error {
 	return s.repo.Delete(id)
 }
+
+func NewAuthenService(repository authen.AuthenRepository) DefaultAuthenService {
+	return DefaultAuthenService{repo: repository}
+}
