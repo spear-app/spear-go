@@ -1,47 +1,15 @@
 package utils
 
 import (
-	"encoding/json"
-	"net/http"
 	"os"
 	"time"
 
-	"github.com/go-playground/validator"
-
-	"github.com/spear-app/spear-go/pkg/domain/user"
-	"github.com/spear-app/spear-go/pkg/err"
-
 	"github.com/dgrijalva/jwt-go"
+	"github.com/spear-app/spear-go/pkg/domain/user"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // ResponseJSON To handle JSON Header and content
-
-// ValidateInputs to validate user inputs
-func ValidateInputs(w http.ResponseWriter, err error) {
-	for _, e := range err.(validator.ValidationErrors) {
-		switch e.ActualTag() {
-		case "gte":
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(errs.NewResponse(e.Field()+" is less than 8 characters", http.StatusBadRequest))
-
-		case "email":
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(errs.NewResponse(e.Field()+" is not a valid email", http.StatusBadRequest))
-		case "len":
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(errs.NewResponse(e.Field()+" is not a valid phone number", http.StatusBadRequest))
-		case "alpha":
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(errs.NewResponse(e.Field()+" is not a valid name", http.StatusBadRequest))
-
-		default:
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(errs.NewResponse(e.Field()+" is "+e.ActualTag(), http.StatusBadRequest))
-		}
-		return
-	}
-}
 
 // HashPassword To hash passwords
 func HashPassword(password string) (string, error) {

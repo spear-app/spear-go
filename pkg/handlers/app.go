@@ -25,9 +25,9 @@ func Start() {
 	//authorization endpoints
 	router.HandleFunc("/api/signup", authenHandler.Signup).Methods(http.MethodPost)
 	router.HandleFunc("/api/login", authenHandler.Login).Methods(http.MethodPost)
-	router.HandleFunc("/api/auth/{id:[0-9]+}", middleware.TokenVerifyMiddleware(authenHandler.ReadUser)).Methods(http.MethodGet)
-	router.HandleFunc("/api/auth/{id:[0-9]+}", middleware.TokenVerifyMiddleware(authenHandler.Update)).Methods(http.MethodPut)
-	router.HandleFunc("/api/auth/{id:[0-9]+}", middleware.TokenVerifyMiddleware(authenHandler.Delete)).Methods(http.MethodDelete)
+	router.HandleFunc("/api/auth/profile/{id:[0-9]+}", middleware.TokenVerifyMiddleware(authenHandler.ReadUser)).Methods(http.MethodGet)
+	router.HandleFunc("/api/auth/profile/{id:[0-9]+}", middleware.TokenVerifyMiddleware(authenHandler.Update)).Methods(http.MethodPut)
+	router.HandleFunc("/api/auth/profile/{id:[0-9]+}", middleware.TokenVerifyMiddleware(authenHandler.Delete)).Methods(http.MethodDelete)
 
 	log.Fatal(http.ListenAndServe("0.0.0.0:8000", handlers.CORS(headers, methods, origins)(router)))
 

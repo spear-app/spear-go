@@ -14,7 +14,6 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/go-playground/validator"
 	"github.com/gorilla/mux"
 
 	"github.com/spear-app/spear-go/pkg/domain/authen"
@@ -40,7 +39,7 @@ func validateEmailAndPassword(userObj user.User) error {
 		return errs.ErrInvalidEmail
 	}
 	if userObj.Password == "" {
-		return errs.ErrInvalidPassword
+		return errs.ErrMissingPassword
 	}
 	return nil
 }
@@ -52,6 +51,13 @@ func (authenHandler AuthenHandlers) Signup(w http.ResponseWriter, r *http.Reques
 	json.NewDecoder(r.Body).Decode(&userObj)
 	//validating email and password
 	err := validateEmailAndPassword(userObj)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusBadRequest))
+		return
+	}
+	//validating name and gender
+	err = validateNameAndGender(userObj)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusBadRequest))
@@ -165,18 +171,19 @@ func (authenHandler AuthenHandlers) Update(w http.ResponseWriter, r *http.Reques
 	w.Header().Add("Content-Type", "application/json")
 	params := mux.Vars(r)
 	id := params["id"]
-	var auth authen.Authen
-	_ = json.NewDecoder(r.Body).Decode(&auth)
+	var usrObj user.User
+	_ = json.NewDecoder(r.Body).Decode(&usrObj)
 	// validate inputs
-	validate := validator.New()
-	err := validate.Struct(auth.User)
+	err := validateNameAndGender(usrObj)
 	if err != nil {
-		utils.ValidateInputs(w, err)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusBadRequest))
 		return
 	}
 	idStr, _ := strconv.Atoi(id)
-	auth.User.ID = uint(idStr)
-	err = authenHandler.service.Update(&auth.User)
+	usrObj.ID = uint(idStr)
+	err = authenHandler.service.Update(&usrObj)
+
 	//handling errors
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -188,14 +195,16 @@ func (authenHandler AuthenHandlers) Update(w http.ResponseWriter, r *http.Reques
 		}
 		return
 	}
-	auth.User.Password = ""
+	usrObj.Password = ""
+	usrObj.Email = ""
+
 	type Data struct {
-		Message string        `json:"message"`
-		Authen  authen.Authen `json:"user"`
+		Message string    `json:"message"`
+		User    user.User `json:"user"`
 	}
 	var data Data
 	data.Message = "update done successfully"
-	data.Authen = auth
+	data.User = usrObj
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(data)
 }
@@ -220,4 +229,15 @@ func (authenHandler AuthenHandlers) Delete(w http.ResponseWriter, r *http.Reques
 	//sending the response
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(errs.NewResponse("User has been deleted successfully", http.StatusOK))
+}
+
+func validateNameAndGender(userObj user.User) error {
+	//err error()
+	if userObj.Name == "" {
+		return errs.ErrMissingName
+	}
+	if userObj.Gender == "" {
+		return errs.ErrMissingGender
+	}
+	return nil
 }

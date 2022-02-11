@@ -59,7 +59,7 @@ func (r AuthenRepositoryDb) Update(user *user.User) error {
 //Delete This function to delete a user by id
 func (r AuthenRepositoryDb) Delete(id string) error {
 	var usrType string
-	row := r.db.QueryRow(`SELECT first_name FROM users WHERE id= $1`, id)
+	row := r.db.QueryRow(`SELECT name FROM users WHERE id= $1`, id)
 	err := row.Scan(&usrType)
 	if err != nil {
 		fmt.Println(err)
