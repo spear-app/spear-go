@@ -3,10 +3,9 @@ package driver
 import (
 	"database/sql"
 	"fmt"
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"log"
 	"os"
-
-	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
 func GetDbConnetion() *sql.DB {
@@ -34,4 +33,3 @@ func GetDbConnetion() *sql.DB {
 	log.Println("pinged db")
 	return db
 }
-
