@@ -19,7 +19,7 @@ func Seed(db *sql.DB) {
 		Password:      "password1",
 		OTP:           "",
 		EmailVerified: false,
-		Gender:        "",
+		Gender:        "MALE",
 	}
 	usr2 := user.User{
 		ID:            0,

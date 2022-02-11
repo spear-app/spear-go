@@ -20,7 +20,7 @@ func Start() {
 	methods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE"})
 	origins := handlers.AllowedOrigins([]string{"*"})
 	dbConnection := driver.GetDbConnetion()
-	//driver.Seed(dbConnection)
+	driver.Seed(dbConnection)
 
 	authenHandler := AuthenHandlers{service.NewAuthenService(authen.NewAuthenRepositoryDb(dbConnection))}
 	//authorization endpoints
