@@ -3,10 +3,9 @@ package driver
 import (
 	"database/sql"
 	"fmt"
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"log"
 	"os"
-
-	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
 func GetDbConnetion() *sql.DB {
@@ -16,6 +15,7 @@ func GetDbConnetion() *sql.DB {
 		os.Getenv("DB_NAME"),
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASSWORD"))
+	//fmt.Println("host is",os.Getenv("DB_HOST"))
 	db, err := sql.Open("pgx", dataSourceName)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("unable to conect to db"))
@@ -33,4 +33,3 @@ func GetDbConnetion() *sql.DB {
 	log.Println("pinged db")
 	return db
 }
-
