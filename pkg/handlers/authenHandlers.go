@@ -93,7 +93,7 @@ func (authenHandler AuthenHandlers) Signup(w http.ResponseWriter, r *http.Reques
 
 	//inserting the hashed code into the database
 	userObj.OTP = string(hashOTP)
-	err = receiver.service.InsertOTP(userObj)
+	err = authenHandler.service.InsertOTP(userObj)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))

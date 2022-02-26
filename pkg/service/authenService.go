@@ -11,6 +11,12 @@ type AuthenService interface {
 	ReadUserByID(*user.User) error
 	Update(*user.User) error
 	Delete(string) error
+	// InsertOTP saves otp into database
+	InsertOTP(user.User) error
+	// VerifyEmail sets email_verified column to true
+	VerifyEmail(user.User) error
+	// ReadOTP gets otp from database
+	ReadOTP(user.User) (string, error)
 }
 
 type DefaultAuthenService struct {
