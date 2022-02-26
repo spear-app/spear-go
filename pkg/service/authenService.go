@@ -12,15 +12,27 @@ type AuthenService interface {
 	Update(*user.User) error
 	Delete(string) error
 	// InsertOTP saves otp into database
-	InsertOTP(user.User) error
+	InsertOTP(*user.User) error
 	// VerifyEmail sets email_verified column to true
-	VerifyEmail(user.User) error
+	VerifyEmail(*user.User) error
 	// ReadOTP gets otp from database
-	ReadOTP(user.User) (string, error)
+	ReadOTP(*user.User) error
 }
 
 type DefaultAuthenService struct {
 	repo authen.AuthenRepository
+}
+
+func (s DefaultAuthenService) InsertOTP(user *user.User) error {
+	return s.repo.InsertOTP(user)
+}
+
+func (s DefaultAuthenService) VerifyEmail(user *user.User) error {
+	return s.repo.VerifyEmail(user)
+}
+
+func (s DefaultAuthenService) ReadOTP(user *user.User) error {
+	return s.repo.ReadOTP(user)
 }
 
 func (s DefaultAuthenService) Signup(user *user.User) error {

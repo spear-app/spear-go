@@ -47,6 +47,16 @@ func (r AuthenRepositoryDb) ReadUserByID(user *user.User) error {
 	return nil
 }
 
+func (r AuthenRepositoryDb) ReadOTP(user *user.User) error {
+	row := r.db.QueryRow(`SELECT id, name, email, gender, created_at, updated_at, deleted_at FROM users WHERE id=$1`,
+		user.ID)
+	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Gender, &user.CreatedAt, &user.UpdatedAt, &user.DeletedAt)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Update only name and gender could be updated
 func (r AuthenRepositoryDb) Update(user *user.User) error {
 	var name string

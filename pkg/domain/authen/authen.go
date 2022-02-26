@@ -14,4 +14,7 @@ type AuthenRepository interface {
 	ReadUserByID(user *user.User) error
 	Update(user *user.User) error
 	Delete(id string) error
+	InsertOTP(user *user.User) error
+	VerifyEmail(user *user.User) error
+	ReadOTP(user *user.User) error
 }
