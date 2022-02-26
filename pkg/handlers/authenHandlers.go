@@ -285,14 +285,14 @@ func (authenHandler AuthenHandlers) VerifyEmail(w http.ResponseWriter, r *http.R
 	intId, err := strconv.Atoi(id)
 	fmt.Println(intId)
 	userObj.ID = uint(intId)
-	hashedOTP, err := authenHandler.service.ReadOTP(userObj)
-	err = bcrypt.CompareHashAndPassword([]byte(hashedOTP), []byte(otp))
+	err = authenHandler.service.ReadOTP(&userObj)
+	err = bcrypt.CompareHashAndPassword([]byte(userObj.OTP), []byte(otp))
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrInvalidVerificationCode.Error(), http.StatusUnauthorized))
 		return
 	}
-	err = authenHandler.service.VerifyEmail(userObj)
+	err = authenHandler.service.VerifyEmail(&userObj)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.ErrDb)
