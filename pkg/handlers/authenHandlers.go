@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"github.com/spear-app/spear-go/pkg/domain/user"
+	emailVerification "github.com/spear-app/spear-go/pkg/emailVerfication"
 	errs "github.com/spear-app/spear-go/pkg/err"
 	"github.com/spear-app/spear-go/pkg/service"
 	"github.com/spear-app/spear-go/pkg/utils"
@@ -79,10 +80,31 @@ func (authenHandler AuthenHandlers) Signup(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	code, err := emailVerification.SendEmail(userObj.Email)
+	//generating email confirmation code
+	code := emailVerification.CodeGenerator()
+
+	//hashing email confirmation code
+	hashOTP, err := bcrypt.GenerateFromPassword([]byte(code), 10)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response.NewResponse(err.Error(), http.StatusInternalServerError))
+		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrServerErr.Error(), http.StatusInternalServerError))
+		return
+	}
+
+	//inserting the hashed code into the database
+	userObj.OTP = string(hashOTP)
+	err = receiver.service.InsertOTP(userObj)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
+		return
+	}
+
+	// sending the code to the user
+	err = emailVerification.SendEmail(userObj.Email, code)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
 		return
 	}
 
@@ -97,6 +119,7 @@ func (authenHandler AuthenHandlers) Signup(w http.ResponseWriter, r *http.Reques
 	}
 	var data Data
 	userObj.Password = ""
+	userObj.OTP = ""
 	data.User = userObj
 	data.Token = token
 	//sending the response
