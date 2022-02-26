@@ -78,6 +78,14 @@ func (authenHandler AuthenHandlers) Signup(w http.ResponseWriter, r *http.Reques
 		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrServerErr.Error(), http.StatusInternalServerError))
 		return
 	}
+
+	code, err := emailVerification.SendEmail(userObj.Email)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response.NewResponse(err.Error(), http.StatusInternalServerError))
+		return
+	}
+
 	//generating the token
 	token, err := utils.GenerateToken(userObj)
 	if err != nil {
