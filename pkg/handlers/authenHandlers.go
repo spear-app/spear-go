@@ -3,13 +3,16 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"github.com/spear-app/spear-go/pkg/domain/user"
+	emailVerification "github.com/spear-app/spear-go/pkg/emailVerfication"
 	errs "github.com/spear-app/spear-go/pkg/err"
 	"github.com/spear-app/spear-go/pkg/service"
 	"github.com/spear-app/spear-go/pkg/utils"
 	"log"
 	"net/http"
 	"net/mail"
+	"regexp"
 	"strconv"
 
 	"golang.org/x/crypto/bcrypt"
@@ -78,6 +81,35 @@ func (authenHandler AuthenHandlers) Signup(w http.ResponseWriter, r *http.Reques
 		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrServerErr.Error(), http.StatusInternalServerError))
 		return
 	}
+
+	//generating email confirmation code
+	code := emailVerification.CodeGenerator()
+
+	//hashing email confirmation code
+	hashOTP, err := bcrypt.GenerateFromPassword([]byte(code), 10)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrServerErr.Error(), http.StatusInternalServerError))
+		return
+	}
+
+	//inserting the hashed code into the database
+	userObj.OTP = string(hashOTP)
+	err = authenHandler.service.InsertOTP(&userObj)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
+		return
+	}
+
+	// sending the code to the user
+	err = emailVerification.SendEmail(userObj.Email, code)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
+		return
+	}
+
 	//generating the token
 	token, err := utils.GenerateToken(userObj)
 	if err != nil {
@@ -89,6 +121,7 @@ func (authenHandler AuthenHandlers) Signup(w http.ResponseWriter, r *http.Reques
 	}
 	var data Data
 	userObj.Password = ""
+	userObj.OTP = ""
 	data.User = userObj
 	data.Token = token
 	//sending the response
@@ -229,6 +262,43 @@ func (authenHandler AuthenHandlers) Delete(w http.ResponseWriter, r *http.Reques
 	//sending the response
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(errs.NewResponse("User has been deleted successfully", http.StatusOK))
+}
+
+func (authenHandler AuthenHandlers) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+	var userObj user.User
+	json.NewDecoder(r.Body).Decode(&userObj)
+	otp := userObj.OTP
+	if len(otp) != 6 {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrInvalidVerificationCode.Error(), http.StatusBadRequest))
+		return
+	}
+	vars := mux.Vars(r)
+	pattern1, _ := regexp.Match(`^[0-9]+$`, []byte(vars["id"]))
+	if !pattern1 {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errs.ErrContentParams)
+		return
+	}
+	id := vars["id"]
+	//var userObj user.User
+	intId, err := strconv.Atoi(id)
+	fmt.Println(intId)
+	userObj.ID = uint(intId)
+	err = authenHandler.service.ReadOTP(&userObj)
+	err = bcrypt.CompareHashAndPassword([]byte(userObj.OTP), []byte(otp))
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrInvalidVerificationCode.Error(), http.StatusUnauthorized))
+		return
+	}
+	err = authenHandler.service.VerifyEmail(&userObj)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.ErrDb)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func validateNameAndGender(userObj user.User) error {

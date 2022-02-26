@@ -29,6 +29,7 @@ func Start() {
 	router.HandleFunc("/api/auth/profile/{id:[0-9]+}", middleware.TokenVerifyMiddleware(authenHandler.ReadUser)).Methods(http.MethodGet)
 	router.HandleFunc("/api/auth/profile/{id:[0-9]+}", middleware.TokenVerifyMiddleware(authenHandler.Update)).Methods(http.MethodPut)
 	router.HandleFunc("/api/auth/profile/{id:[0-9]+}", middleware.TokenVerifyMiddleware(authenHandler.Delete)).Methods(http.MethodDelete)
+	router.Path("/api/v1/confirmEmail/{id}").HandlerFunc(authenHandler.VerifyEmail).Methods(http.MethodPost)
 
 	log.Fatal(http.ListenAndServe("0.0.0.0:8000", handlers.CORS(headers, methods, origins)(router)))
 

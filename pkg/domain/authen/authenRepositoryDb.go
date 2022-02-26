@@ -18,6 +18,50 @@ func (r AuthenRepositoryDb) Signup(user *user.User) error {
 	}
 	return nil
 }
+
+func (r AuthenRepositoryDb) InsertOTP(user *user.User) error {
+	var name string
+	row := r.db.QueryRow(`SELECT name FROM users WHERE id= $1`, user.ID)
+	err := row.Scan(&name)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	_, err = r.db.Exec(`UPDATE users SET otp=$1 WHERE id=$2`,
+		user.OTP, user.ID)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	return nil
+}
+
+func (r AuthenRepositoryDb) ReadOTP(user *user.User) error {
+	row := r.db.QueryRow(`SELECT otp FROM users WHERE id=$1`,
+		user.ID)
+	err := row.Scan(&user.OTP)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r AuthenRepositoryDb) VerifyEmail(user *user.User) error {
+	var name string
+	row := r.db.QueryRow(`SELECT name FROM users WHERE id= $1`, user.ID)
+	err := row.Scan(&name)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	_, err = r.db.Exec(`UPDATE users SET email_verified=true WHERE id=$1`, user.ID)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	return nil
+}
+
 func (r AuthenRepositoryDb) Login(user *user.User) error {
 	row := r.db.QueryRow(`SELECT id, name, email, password, gender FROM users WHERE email=$1`, user.Email)
 	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Gender)
