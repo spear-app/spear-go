@@ -11,3 +11,8 @@ type Notification struct{
 	Title			string		`json:"title"`
 	Body			string		`json:"body"`
 }
+
+type NotificationRepository interface {
+	Index(UserId uint) ([]Notification, error)
+	Create(Notification) error
+}
