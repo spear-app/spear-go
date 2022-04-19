@@ -3,7 +3,9 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"time"
 
+	"github.com/go-co-op/gocron"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 
@@ -12,6 +14,7 @@ import (
 	"github.com/spear-app/spear-go/pkg/driver"
 	"github.com/spear-app/spear-go/pkg/middleware"
 	"github.com/spear-app/spear-go/pkg/service"
+	"github.com/spear-app/spear-go/pkg/utils"
 )
 
 func Start() {
@@ -36,5 +39,11 @@ func Start() {
 	router.HandleFunc("/api/notification/getNotificationById/{id:[0-9]+}", middleware.TokenVerifyMiddleware(notificationHandler.ReadByNotificationID)).Methods(http.MethodGet)
 	router.HandleFunc("/api/notification/getNotificationByUserId/{id:[0-9]+}", middleware.TokenVerifyMiddleware(notificationHandler.ReadByUserID)).Methods(http.MethodGet)
 
+	s := gocron.NewScheduler(time.UTC)
+
+
+	s.Every(1).Day().At("00:00").Do(func(){utils.DeleteJobInternal(dbConnection)})
+
+	s.StartAsync()
 	log.Fatal(http.ListenAndServe("0.0.0.0:8000", handlers.CORS(headers, methods, origins)(router)))
 }
