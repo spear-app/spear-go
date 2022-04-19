@@ -11,7 +11,7 @@ type NotificationRepositoryDb struct {
 
 // TODO user not found error
 func (r NotificationRepositoryDb) Create(notificationObj *Notification) error{
-	err := r.db.QueryRow(`INSERT INTO notifications(title, body, user_id) VALUES ($1,$2,$3)RETURNING id;`, notificationObj.Title, notificationObj.Body, notificationObj.UserUID, user.Gender).Scan(&user.ID)
+	err := r.db.QueryRow(`INSERT INTO notifications(title, body, user_id) VALUES ($1,$2,$3)RETURNING id;`, notificationObj.Title, notificationObj.Body, notificationObj.UserUID).Scan(&notificationObj.ID)
 	if err != nil {
 		fmt.Println(err)
 		return err

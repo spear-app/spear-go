@@ -15,3 +15,7 @@ type DefaultNotificationService struct{
 func (s DefaultNotificationService) Create(notificationObj *notification.Notification) error {
 	return s.repo.Create(notificationObj)
 }
+
+func NewNotificationService(repository notification.NotificationRepository) DefaultNotificationService {
+	return DefaultNotificationService{repo: repository}
+}

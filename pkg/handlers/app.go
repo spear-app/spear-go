@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/spear-app/spear-go/pkg/domain/authen"
+	"github.com/spear-app/spear-go/pkg/domain/notification"
 	"github.com/spear-app/spear-go/pkg/driver"
 	"github.com/spear-app/spear-go/pkg/middleware"
 	"github.com/spear-app/spear-go/pkg/service"
@@ -23,6 +24,7 @@ func Start() {
 	driver.Seed(dbConnection)
 
 	authenHandler := AuthenHandlers{service.NewAuthenService(authen.NewAuthenRepositoryDb(dbConnection))}
+	notificationHandler := NotificationHandlers{service}
 	//authorization endpoints
 	router.HandleFunc("/api/signup", authenHandler.Signup).Methods(http.MethodPost)
 	router.HandleFunc("/api/login", authenHandler.Login).Methods(http.MethodPost)
@@ -30,7 +32,6 @@ func Start() {
 	router.HandleFunc("/api/auth/profile/{id:[0-9]+}", middleware.TokenVerifyMiddleware(authenHandler.Update)).Methods(http.MethodPut)
 	router.HandleFunc("/api/auth/profile/{id:[0-9]+}", middleware.TokenVerifyMiddleware(authenHandler.Delete)).Methods(http.MethodDelete)
 	router.Path("/api/v1/confirmEmail/{id}").HandlerFunc(authenHandler.VerifyEmail).Methods(http.MethodPost)
-
-	log.Fatal(http.ListenAndServe("0.0.0.0:8000", handlers.CORS(headers, methods, origins)(router)))
+	router.HandleFunc("/api/notification/create", middleware.TokenVerifyMiddleware(authenHandler.ReadUser)).Methods(http.og.Fatal(http.ListenAndServe("0.0.0.0:8000", handlers.CORS(headers, methods, origins)(router)))
 
 }
