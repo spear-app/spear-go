@@ -24,7 +24,7 @@ func Start() {
 	driver.Seed(dbConnection)
 
 	authenHandler := AuthenHandlers{service.NewAuthenService(authen.NewAuthenRepositoryDb(dbConnection))}
-	notificationHandler := NotificationHandlers{service}
+	notificationHandler := NotificationHandlers{service.NewNotificationService(notification.NotificationRepositoryDb(dbConnection))}
 	//authorization endpoints
 	router.HandleFunc("/api/signup", authenHandler.Signup).Methods(http.MethodPost)
 	router.HandleFunc("/api/login", authenHandler.Login).Methods(http.MethodPost)
@@ -32,6 +32,6 @@ func Start() {
 	router.HandleFunc("/api/auth/profile/{id:[0-9]+}", middleware.TokenVerifyMiddleware(authenHandler.Update)).Methods(http.MethodPut)
 	router.HandleFunc("/api/auth/profile/{id:[0-9]+}", middleware.TokenVerifyMiddleware(authenHandler.Delete)).Methods(http.MethodDelete)
 	router.Path("/api/v1/confirmEmail/{id}").HandlerFunc(authenHandler.VerifyEmail).Methods(http.MethodPost)
-	router.HandleFunc("/api/notification/create", middleware.TokenVerifyMiddleware(authenHandler.ReadUser)).Methods(http.og.Fatal(http.ListenAndServe("0.0.0.0:8000", handlers.CORS(headers, methods, origins)(router)))
-
+	router.HandleFunc("/api/notification/create", middleware.TokenVerifyMiddleware(notificationHandler.Create)).Methods(http.MethodPost)
+	log.Fatal(http.ListenAndServe("0.0.0.0:8000", handlers.CORS(headers, methods, origins)(router)))
 }
