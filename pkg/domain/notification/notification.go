@@ -13,5 +13,5 @@ type Notification struct{
 }
 
 type NotificationRepository interface {
-	Create(Notification) error
+	Create(*Notification) error
 }
