@@ -1,6 +1,8 @@
 package notification
 
 import (
+	errs "github.com/spear-app/spear-go/pkg/err"
+
 	"database/sql"
 	"fmt"
 )
@@ -40,14 +42,15 @@ func (r NotificationRepositoryDb) ReadByUserID(id int) ([]Notification,error){
 
 	for rows.Next() {
         var noti Notification
-        if err := rows.Scan(&noti.ID, &noti.Title, &noti.Body,&noti.UserUID, &noti.CreatedAt,&noti.UpdatedAt,&noti.DeletedAt); err != nil {
-            return notifications, err
-        }
-        notifications = append(notifications,noti)
-    }
-    if err = rows.Err(); err != nil {
-        return notifications, err
-    }
+        switch err := rows.Scan(&noti.ID, &noti.Title, &noti.Body,&noti.UserUID, &noti.CreatedAt,&noti.UpdatedAt,&noti.DeletedAt); err {
+		case sql.ErrNoRows:
+			return notifications, sql.ErrNoRows
+		case nil:
+			notifications = append(notifications, noti)
+		default:
+			return notifications, errs.ErrDb
+		}
+	}
 	return notifications,nil
 }
 

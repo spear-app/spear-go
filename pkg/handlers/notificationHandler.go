@@ -98,6 +98,11 @@ func (notificationHandler NotificationHandlers) ReadByUserID(w http.ResponseWrit
 		json.NewEncoder(w).Encode(errs.NewResponse("notifications not found", http.StatusNotFound))
 		return
 	case nil:
+		if len(notifications)==0{
+			w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(errs.NewResponse("notifications not found", http.StatusNotFound))
+		return
+		}
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(notifications)
 		return
