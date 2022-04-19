@@ -22,6 +22,17 @@ import (
 	"github.com/spear-app/spear-go/pkg/domain/authen"
 )
 
+
+//TODO handle this check
+/*
+if middleware.ClaimsVar.UserId!=id{
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(errs.NewResponse("unauthorized process",http.StatusUnauthorized))
+		return
+	}
+*/
+
+
 type AuthenHandlers struct {
 	service service.AuthenService
 }

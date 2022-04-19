@@ -26,7 +26,7 @@ func CheckPasswordHash(password, hash string) bool {
 // GenerateToken to generate token when user is signed in
 func GenerateToken(user user.User) (string, error) {
 	claims := jwt.MapClaims{}
-	claims["sub"] = user.ID
+	claims["user_id"] = user.ID
 	claims["name"] = user.Name
 	claims["iat"] = time.Now().Unix()
 	claims["exp"] = time.Now().Add(time.Hour * 1).Unix() //Token expires after 1 hour
