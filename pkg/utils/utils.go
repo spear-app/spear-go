@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"database/sql"
+	"fmt"
 	"os"
 	"time"
 
@@ -33,4 +35,12 @@ func GenerateToken(user user.User) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(os.Getenv("API_SECRET")))
+}
+
+func DeleteJobInternal(db *sql.DB){
+	sqlStatement := `DELETE FROM notifications`
+	_, err := db.Exec(sqlStatement)
+	if err != nil {
+  		fmt.Println(err)
+	}
 }
