@@ -24,15 +24,32 @@ func (r NotificationRepositoryDb) ReadByNotificationID(id int) (Notification,err
 	sqlStatement := `SELECT id,title,body,user_id,created_at,updated_at,deleted_at FROM notifications WHERE id=$1;`
 	row := r.db.QueryRow(sqlStatement, id)
 	err := row.Scan(&notiObj.ID,&notiObj.Title,&notiObj.Body,&notiObj.UserUID,&notiObj.CreatedAt,&notiObj.UpdatedAt,&notiObj.DeletedAt) 
-	//case sql.ErrNoRows:
-  	//	return notiObj,errors.New("notification not found")
-	//case nil:
-  	//	return notiObj,nil
-	//default:
   	return notiObj,err
 	
 }
 
+
+func (r NotificationRepositoryDb) ReadByUserID(id int) ([]Notification,error){
+	notifications := make([]Notification,0)
+	sqlStatement := `SELECT id,title,body,user_id,created_at,updated_at,deleted_at FROM notifications WHERE user_id=$1;`
+	rows,err := r.db.Query(sqlStatement, id)
+	if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+	for rows.Next() {
+        var noti Notification
+        if err := rows.Scan(&noti.ID, &noti.Title, &noti.Body,&noti.UserUID, &noti.CreatedAt,&noti.UpdatedAt,&noti.DeletedAt); err != nil {
+            return notifications, err
+        }
+        notifications = append(notifications,noti)
+    }
+    if err = rows.Err(); err != nil {
+        return notifications, err
+    }
+	return notifications,nil
+}
 
 func NewNotificationRepositoryDb(db *sql.DB) NotificationRepositoryDb {
 	return NotificationRepositoryDb{db}
