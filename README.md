@@ -13,3 +13,6 @@ To stop the server, ctrl+c and run this command
 ```
 docker-compose down
  ```
+ 
+ ### What's New
+Application has sound alarm feature. Mobile sensor can detect sounds around the user. These sounds need to be stored as notifications. We store them in database for 24 hours. After that application uses cron jobs to delete notifications. 
