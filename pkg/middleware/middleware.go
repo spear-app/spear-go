@@ -2,8 +2,10 @@ package middleware
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/spear-app/spear-go/pkg/err"
@@ -13,6 +15,13 @@ import (
 
 // TokenVerifyMiddleware to verify the token before accessing the route
 // Middleware
+type Claims struct{
+	UserId int
+}
+
+var (
+	ClaimsVar Claims
+)
 func TokenVerifyMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
@@ -31,7 +40,14 @@ func TokenVerifyMiddleware(next http.HandlerFunc) http.HandlerFunc {
 				json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusUnauthorized))
 				return
 			}
-			if token.Valid {
+			if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+				InterUderID := claims["user_id"]
+				strId := fmt.Sprintf("%v", InterUderID)
+				userID, err := strconv.Atoi(strId)
+				if err!=nil{
+					panic(err.Error())
+				}
+				ClaimsVar.UserId=userID
 				next.ServeHTTP(w, r)
 			} else {
 				w.WriteHeader(http.StatusUnauthorized)
@@ -45,3 +61,4 @@ func TokenVerifyMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		}
 	})
 }
+

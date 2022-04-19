@@ -11,6 +11,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spear-app/spear-go/pkg/domain/notification"
 	errs "github.com/spear-app/spear-go/pkg/err"
+	"github.com/spear-app/spear-go/pkg/middleware"
+
 	"github.com/spear-app/spear-go/pkg/service"
 )
 
@@ -92,6 +94,11 @@ func (notificationHandler NotificationHandlers) ReadByUserID(w http.ResponseWrit
 	if err!=nil{
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(errs.NewResponse("invalid user id", http.StatusBadRequest))
+		return
+	}
+	if middleware.ClaimsVar.UserId!=id{
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(errs.NewResponse("unauthorized process",http.StatusUnauthorized))
 		return
 	}
 	notifications, err := notificationHandler.service.ReadByUserID(id)
