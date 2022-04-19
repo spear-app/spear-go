@@ -24,7 +24,7 @@ func Start() {
 	driver.Seed(dbConnection)
 
 	authenHandler := AuthenHandlers{service.NewAuthenService(authen.NewAuthenRepositoryDb(dbConnection))}
-	notificationHandler := NotificationHandlers{service.NewNotificationService(notification.NotificationRepositoryDb(dbConnection))}
+	notificationHandler := NotificationHandlers{service.NewNotificationService(notification.NewNotificationRepositoryDb(dbConnection))}
 	//authorization endpoints
 	router.HandleFunc("/api/signup", authenHandler.Signup).Methods(http.MethodPost)
 	router.HandleFunc("/api/login", authenHandler.Login).Methods(http.MethodPost)

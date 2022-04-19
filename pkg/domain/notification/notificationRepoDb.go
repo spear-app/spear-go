@@ -18,3 +18,9 @@ func (r NotificationRepositoryDb) Create(notificationObj *Notification) error{
 	}
 	return nil
 }
+
+
+
+func NewNotificationRepositoryDb(db *sql.DB) NotificationRepositoryDb {
+	return NotificationRepositoryDb{db}
+}

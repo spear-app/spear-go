@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/spear-app/spear-go/pkg/domain/notification"
 	errs "github.com/spear-app/spear-go/pkg/err"
@@ -19,19 +19,18 @@ func (notificationHandler NotificationHandlers) Create(w http.ResponseWriter, r 
 	w.Header().Add("Content-Type", "application/json")
 	var notiObj *notification.Notification
 	json.NewDecoder(r.Body).Decode(&notiObj)
-	var userIdStr string = strconv.FormatUint(uint64(notiObj.UserUID), 10)
-	_, err := strconv.Atoi(userIdStr)
-	if err!=nil{
+	if notiObj.UserUID==0{
 		//TODO response with bad request 400
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(errs.NewResponse("invalid user id", http.StatusBadRequest))
 		return
 	}
 	
-	err = notificationHandler.service.Create(notiObj)
+	err := notificationHandler.service.Create(notiObj)
 	if err!=nil{
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
+		return
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(notiObj)
