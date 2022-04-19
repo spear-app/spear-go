@@ -33,5 +33,7 @@ func Start() {
 	router.HandleFunc("/api/auth/profile/{id:[0-9]+}", middleware.TokenVerifyMiddleware(authenHandler.Delete)).Methods(http.MethodDelete)
 	router.Path("/api/v1/confirmEmail/{id}").HandlerFunc(authenHandler.VerifyEmail).Methods(http.MethodPost)
 	router.HandleFunc("/api/notification/create", middleware.TokenVerifyMiddleware(notificationHandler.Create)).Methods(http.MethodPost)
+	router.HandleFunc("/api/notification/getNotificationById/{id:[0-9]+}", middleware.TokenVerifyMiddleware(notificationHandler.ReadByNotificationID)).Methods(http.MethodPost)
+
 	log.Fatal(http.ListenAndServe("0.0.0.0:8000", handlers.CORS(headers, methods, origins)(router)))
 }
