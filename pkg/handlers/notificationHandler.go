@@ -33,12 +33,6 @@ func (notificationHandler NotificationHandlers) Create(w http.ResponseWriter, r 
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusBadRequest))
 		return
 	}
-	// if notiObj.UserUID==0{
-	// 	//TODO response with bad request 400
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	json.NewEncoder(w).Encode(errs.NewResponse("invalid user id", http.StatusBadRequest))
-	// 	return
-	// }
 	
 	err = notificationHandler.service.Create(notiObj)
 	if err!=nil{

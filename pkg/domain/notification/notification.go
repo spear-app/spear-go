@@ -2,8 +2,8 @@ package notification
 
 import "time"
 type Notification struct{
-	ID				uint 		`json:"id"` 
-	UserUID			uint  		`json:"user_id" validate:"required"`
+	ID				int 		`json:"id"` 
+	UserUID			int  		`json:"user_id" validate:"required"`
 	CreatedAt		time.Time  	`json:"created_at"`
 	UpdatedAt		time.Time 	`json:"updated_at"`
 	DeletedAt		*time.Time	`json:"deleted_at"`
@@ -13,4 +13,5 @@ type Notification struct{
 
 type NotificationRepository interface {
 	Create(*Notification) error
+	ReadByNotificationID(int) Notification
 }
