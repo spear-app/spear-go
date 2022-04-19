@@ -79,6 +79,9 @@ func (notificationHandler NotificationHandlers) ReadByNotificationID(w http.Resp
 	}
 }
 
+
+
+//TODO can't use postgres errNorows here, try to find a way later
 func (notificationHandler NotificationHandlers) ReadByUserID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "applicatsion/json")
 
