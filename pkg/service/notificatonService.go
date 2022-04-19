@@ -2,14 +2,13 @@ package service
 
 import "github.com/spear-app/spear-go/pkg/domain/notification"
 
-
-
-type NotificationService interface{
+type NotificationService interface {
 	Create(*notification.Notification) error
-	ReadByNotificationID(int)(notification.Notification,error)
+	ReadByNotificationID(int) (notification.Notification, error)
+	ReadByUserID(int) ([]notification.Notification, error)
 }
 
-type DefaultNotificationService struct{
+type DefaultNotificationService struct {
 	repo notification.NotificationRepository
 }
 
@@ -17,8 +16,12 @@ func (s DefaultNotificationService) Create(notificationObj *notification.Notific
 	return s.repo.Create(notificationObj)
 }
 
-func (s DefaultNotificationService) ReadByNotificationID(id int)(notification.Notification,error){
+func (s DefaultNotificationService) ReadByNotificationID(id int) (notification.Notification, error) {
 	return s.repo.ReadByNotificationID(id)
+}
+
+func (s DefaultNotificationService) ReadByUserID(id int) ([]notification.Notification, error) {
+	return s.repo.ReadByUserID(id)
 }
 
 func NewNotificationService(repository notification.NotificationRepository) DefaultNotificationService {
