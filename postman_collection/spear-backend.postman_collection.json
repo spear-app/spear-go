@@ -125,13 +125,122 @@
 			]
 		},
 		{
+			"name": "notification",
+			"item": [
+				{
+					"name": "create",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NTAzOTg1MzYsImlhdCI6MTY1MDM5NDkzNiwibmFtZSI6IlJhYWhvbWEgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiLCJ1c2VyX2lkIjoxMX0.o9NB2Nzzd8EFGRvrJIjDCY9bjZdwV1GUj4slKfDKQ94",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"cat meaw 14\",\n    \"body\": \"meaw meaw meaw meaw\",\n    \"user_id\": 2\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8000/api/notification/create",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"notification",
+								"create"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "ReadByNotificationId",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NTAzOTg1MzYsImlhdCI6MTY1MDM5NDkzNiwibmFtZSI6IlJhYWhvbWEgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiLCJ1c2VyX2lkIjoxMX0.o9NB2Nzzd8EFGRvrJIjDCY9bjZdwV1GUj4slKfDKQ94",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8000/api/notification/getNotificationById/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"notification",
+								"getNotificationById",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getNotificationByUserId",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NTAzOTg1MzYsImlhdCI6MTY1MDM5NDkzNiwibmFtZSI6IlJhYWhvbWEgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiLCJ1c2VyX2lkIjoxMX0.o9NB2Nzzd8EFGRvrJIjDCY9bjZdwV1GUj4slKfDKQ94",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8000/api/notification/getNotificationByUserId/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"notification",
+								"getNotificationByUserId",
+								"2"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
 			"name": "Sign up",
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"name\" : \"Raahoma\",\n    \"email\" : \"rahmayasser@gmail.com\",\n    \"password\" : \"password\",\n    \"gender\" : \"FEMALE\"\n}",
+					"raw": "{\n    \"name\" : \"Raahoma\",\n    \"email\" : \"rahma@gmail.com\",\n    \"password\" : \"password\",\n    \"gender\" : \"FEMALE\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -156,11 +265,21 @@
 		{
 			"name": "Login",
 			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"email\" : \"rahmayasser@gmail.com\",\n    \"password\" : \"password\"\n}",
+					"raw": "{\n    \"email\" : \"rahma@gmail.com\",\n    \"password\" : \"password\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -181,6 +300,42 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "verify email",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/confirmEmail/{id}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"confirmEmail",
+						"{id}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "token",
+			"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NTAzNjg2MzcsImlhdCI6MTY1MDM2NTAzNywibmFtZSI6IlJhaG9tYSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiLCJzdWIiOjJ9.9VZcXGDqbwepii5bAuTnjY03ywMLGT69v6oHmGmrf_w"
 		}
 	]
 }
