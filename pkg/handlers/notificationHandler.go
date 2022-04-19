@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
 	"github.com/spear-app/spear-go/pkg/domain/notification"
 	errs "github.com/spear-app/spear-go/pkg/err"
 	"github.com/spear-app/spear-go/pkg/service"
@@ -16,9 +15,9 @@ type NotificationHandlers struct {
 }
 
 
-func (authenHandler AuthenHandlers) Create(w http.ResponseWriter, r *http.Request) {
+func (notificationHandler NotificationHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
-	var notiObj notification.Notification
+	var notiObj *notification.Notification
 	json.NewDecoder(r.Body).Decode(&notiObj)
 	var userIdStr string = strconv.FormatUint(uint64(notiObj.UserUID), 10)
 	_, err := strconv.Atoi(userIdStr)
@@ -29,4 +28,11 @@ func (authenHandler AuthenHandlers) Create(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	
+	err = notificationHandler.service.Create(notiObj)
+	if err!=nil{
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(notiObj)
 }
