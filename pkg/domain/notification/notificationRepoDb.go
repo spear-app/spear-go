@@ -2,7 +2,6 @@ package notification
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 )
 
@@ -24,14 +23,14 @@ func (r NotificationRepositoryDb) ReadByNotificationID(id int) (Notification,err
 	var notiObj Notification
 	sqlStatement := `SELECT id,title,body,user_id,created_at,updated_at,deleted_at FROM notifications WHERE id=$1;`
 	row := r.db.QueryRow(sqlStatement, id)
-	switch err := row.Scan(&notiObj.ID,&notiObj.Title,&notiObj.Body,&notiObj.UserUID,&notiObj.CreatedAt,&notiObj.UpdatedAt,&notiObj.DeletedAt); err {
-	case sql.ErrNoRows:
-  		return notiObj,errors.New("notification not found")
-	case nil:
-  		return notiObj,nil
-	default:
-  		return notiObj,err
-	}
+	err := row.Scan(&notiObj.ID,&notiObj.Title,&notiObj.Body,&notiObj.UserUID,&notiObj.CreatedAt,&notiObj.UpdatedAt,&notiObj.DeletedAt) 
+	//case sql.ErrNoRows:
+  	//	return notiObj,errors.New("notification not found")
+	//case nil:
+  	//	return notiObj,nil
+	//default:
+  	return notiObj,err
+	
 }
 
 
