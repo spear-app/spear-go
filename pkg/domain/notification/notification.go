@@ -14,4 +14,5 @@ type Notification struct{
 type NotificationRepository interface {
 	Create(*Notification) error
 	ReadByNotificationID(int) (Notification,error)
+	ReadByUserID(int) ([]Notification,error)
 }
