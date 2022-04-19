@@ -57,7 +57,7 @@ func (notificationHandler NotificationHandlers) ReadByNotificationID(w http.Resp
 
 	if err!=nil{
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(errs.NewResponse("invalid notification id", http.StatusInternalServerError))
+		json.NewEncoder(w).Encode(errs.NewResponse("invalid notification id", http.StatusBadRequest))
 		return
 	}
 
@@ -75,6 +75,35 @@ func (notificationHandler NotificationHandlers) ReadByNotificationID(w http.Resp
 	default:
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrServerErr.Error(), http.StatusInternalServerError))
+		return
+	}
+}
+
+func (notificationHandler NotificationHandlers) ReadByUserID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "applicatsion/json")
+
+	params := mux.Vars(r) // Get params
+	strId := params["id"]
+	id, err := strconv.Atoi(strId)
+
+	if err!=nil{
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errs.NewResponse("invalid user id", http.StatusBadRequest))
+		return
+	}
+	notifications, err := notificationHandler.service.ReadByUserID(id)
+	switch err {
+	case sql.ErrNoRows:
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(errs.NewResponse("notifications not found", http.StatusNotFound))
+		return
+	case nil:
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(notifications)
+		return
+	default:
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
 		return
 	}
 }
