@@ -13,6 +13,5 @@ type Notification struct{
 }
 
 type NotificationRepository interface {
-	Index(UserId uint) ([]Notification, error)
 	Create(Notification) error
 }
