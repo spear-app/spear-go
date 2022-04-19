@@ -29,7 +29,7 @@ CREATE TABLE public.notifications (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     deleted_at timestamp with time zone,
-    title character(70) NOT NULL,
+    title character varying NOT NULL,
     body text NOT NULL,
     user_id integer
 );
