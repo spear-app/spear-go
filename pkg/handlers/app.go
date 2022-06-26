@@ -18,6 +18,7 @@ import (
 )
 
 func Start() {
+
 	router := mux.NewRouter()
 	//this CORS to enable frontend request to the backend endpoints
 	headers := handlers.AllowedHeaders([]string{"Content-type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization"})
@@ -41,8 +42,7 @@ func Start() {
 
 	s := gocron.NewScheduler(time.UTC)
 
-
-	s.Every(1).Day().At("00:00").Do(func(){utils.DeleteJobInternal(dbConnection)})
+	s.Every(1).Day().At("00:00").Do(func() { utils.DeleteJobInternal(dbConnection) })
 
 	s.StartAsync()
 	log.Fatal(http.ListenAndServe("0.0.0.0:8000", handlers.CORS(headers, methods, origins)(router)))

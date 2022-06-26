@@ -12,3 +12,6 @@ func init() {
 func main() {
 	handlers.Start()
 }
+func Hi() {
+
+}
