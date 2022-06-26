@@ -5,13 +5,11 @@ import (
 	"github.com/subosito/gotenv"
 )
 
-func init() {
+func Init() {
 	gotenv.Load()
 }
 
 func main() {
+	Init()
 	handlers.Start()
-}
-func Hi() {
-
 }
