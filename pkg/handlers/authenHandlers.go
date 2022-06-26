@@ -22,7 +22,6 @@ import (
 	"github.com/spear-app/spear-go/pkg/domain/authen"
 )
 
-
 //TODO handle this check
 /*
 if middleware.ClaimsVar.UserId!=id{
@@ -31,7 +30,6 @@ if middleware.ClaimsVar.UserId!=id{
 		return
 	}
 */
-
 
 type AuthenHandlers struct {
 	service service.AuthenService
@@ -57,7 +55,6 @@ func validateEmailAndPassword(userObj user.User) error {
 	}
 	return nil
 }
-
 func (authenHandler AuthenHandlers) Signup(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	//extracting usr obj
