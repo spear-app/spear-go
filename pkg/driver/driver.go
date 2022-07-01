@@ -14,8 +14,7 @@ func GetDbConnetion() *sql.DB {
 		os.Getenv("DB_PORT"),
 		os.Getenv("DB_NAME"),
 		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"))
-	//fmt.Println("host is",os.Getenv("DB_HOST"))
+		os.Getenv("DB_PASSWORD")) //fmt.Println("host is",os.Getenv("DB_HOST"))
 	db, err := sql.Open("pgx", dataSourceName)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("unable to conect to db"))

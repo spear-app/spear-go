@@ -18,9 +18,10 @@ import (
 )
 
 func Start() {
+
 	router := mux.NewRouter()
 	//this CORS to enable frontend request to the backend endpoints
-	headers := handlers.AllowedHeaders([]string{"Content-type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization"})
+	headers := handlers.AllowedHeaders([]string{"Access-Control-Allow-Origin", "Content-type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization"})
 	methods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE"})
 	origins := handlers.AllowedOrigins([]string{"*"})
 	dbConnection := driver.GetDbConnetion()
@@ -38,11 +39,11 @@ func Start() {
 	router.HandleFunc("/api/notification/create", middleware.TokenVerifyMiddleware(notificationHandler.Create)).Methods(http.MethodPost)
 	router.HandleFunc("/api/notification/getNotificationById/{id:[0-9]+}", middleware.TokenVerifyMiddleware(notificationHandler.ReadByNotificationID)).Methods(http.MethodGet)
 	router.HandleFunc("/api/notification/getNotificationByUserId/{id:[0-9]+}", middleware.TokenVerifyMiddleware(notificationHandler.ReadByUserID)).Methods(http.MethodGet)
+	router.HandleFunc("/api/send_audio", middleware.TokenVerifyMiddleware(Wav)).Methods(http.MethodPost)
 
 	s := gocron.NewScheduler(time.UTC)
 
-
-	s.Every(1).Day().At("00:00").Do(func(){utils.DeleteJobInternal(dbConnection)})
+	s.Every(1).Day().At("00:00").Do(func() { utils.DeleteJobInternal(dbConnection) })
 
 	s.StartAsync()
 	log.Fatal(http.ListenAndServe("0.0.0.0:8000", handlers.CORS(headers, methods, origins)(router)))
