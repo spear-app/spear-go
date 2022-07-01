@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	errs "github.com/spear-app/spear-go/pkg/err"
 	"io"
 	"mime/multipart"
@@ -18,7 +19,7 @@ type textAndDiarization struct {
 	diarization string
 }
 
-var ConversationStarTime string
+var ConversationStarTime time.Time
 
 func Wav(w http.ResponseWriter, r *http.Request) {
 
@@ -54,11 +55,17 @@ func Wav(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// so far have text, now we need to get speaker diarization
-	audioPlayTime := time.Now().Format("15:04:05")
+	audioPlayTime := time.Now()
 	err = PlayAudio(filePath)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse("couldn't play audio", http.StatusInternalServerError))
+		return
+	}
+	duration, err := SubtractTime(ConversationStarTime, audioPlayTime)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
 		return
 	}
 
@@ -86,9 +93,20 @@ func PlayAudio(filePath string) error {
 	}
 	return nil
 }
-
 func StartConversation(w http.ResponseWriter, r *http.Request) {
 
-	ConversationStarTime = time.Now().Format("15:04:05")
+	ConversationStarTime = time.Now()
 
+}
+func SubtractTime(time1 time.Time, time2 time.Time) (int, error) {
+	hour1, min1, second1 := time1.Clock()
+	hour2, min2, second2 := time2.Clock()
+	if hour2-hour1 != 0 {
+		return 0, errors.New("max conversation time is 15 minutes")
+	}
+	duration := (min2*60 + second2) - (min1*60 + second1)
+	if duration <= 0 {
+		return 0, errors.New("invalid time duration")
+	}
+	return duration, nil
 }
