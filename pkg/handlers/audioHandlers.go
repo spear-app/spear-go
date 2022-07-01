@@ -3,12 +3,19 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	errs "github.com/spear-app/spear-go/pkg/err"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
+	"os/exec"
 )
+
+type textAndDiarization struct {
+	text        string
+	diarization string
+}
 
 func Wav(w http.ResponseWriter, r *http.Request) {
 	//dat, err := ioutil.ReadFile("public_path()" + "/forTest/record.wav")
@@ -21,7 +28,8 @@ func Wav(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusBadRequest))
 		return
 	}
-	tmpfile, err := os.Create("./" + h.Filename)
+	filePath := "/home/rahma/conversation_audio/" + h.Filename
+	tmpfile, err := os.Create(filePath)
 	defer tmpfile.Close()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -36,4 +44,15 @@ func Wav(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(200)
 	return
+}
+
+func GetText(filePath string) (string, error) {
+	prg := "/usr/bin/python3"
+	arg1 := "/home/rahma/spear-python/speech_to_text.py"
+	cmd, err := exec.Command(prg, arg1, filePath).Output()
+	if err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+	return string(cmd), nil
 }
