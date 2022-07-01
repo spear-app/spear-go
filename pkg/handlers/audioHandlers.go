@@ -54,6 +54,13 @@ func Wav(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// so far have text, now we need to get speaker diarization
+	audioPlayTime := time.Now().Format("15:04:05")
+	err = PlayAudio(filePath)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse("couldn't play audio", http.StatusInternalServerError))
+		return
+	}
 
 	w.WriteHeader(200)
 	return
@@ -83,4 +90,5 @@ func PlayAudio(filePath string) error {
 func StartConversation(w http.ResponseWriter, r *http.Request) {
 
 	ConversationStarTime = time.Now().Format("15:04:05")
+
 }
