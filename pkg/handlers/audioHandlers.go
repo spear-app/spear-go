@@ -26,7 +26,6 @@ func Wav(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
-
 		return
 	}
 	_, err = io.Copy(tmpfile, file)
