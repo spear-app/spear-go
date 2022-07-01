@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"time"
 )
 
 type textAndDiarization struct {
@@ -17,7 +18,10 @@ type textAndDiarization struct {
 	diarization string
 }
 
+var ConversationStarTime string
+
 func Wav(w http.ResponseWriter, r *http.Request) {
+
 	//dat, err := ioutil.ReadFile("public_path()" + "/forTest/record.wav")
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -42,6 +46,15 @@ func Wav(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
 		return
 	}
+	var textAndSpeakerResponse textAndDiarization
+	textAndSpeakerResponse.text, err = GetText(filePath)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse("couldn't get text from speech", http.StatusInternalServerError))
+		return
+	}
+	// so far have text, now we need to get speaker diarization
+
 	w.WriteHeader(200)
 	return
 }
@@ -55,4 +68,19 @@ func GetText(filePath string) (string, error) {
 		return "", err
 	}
 	return string(cmd), nil
+}
+
+func PlayAudio(filePath string) error {
+	prg := "/usr/bin/play"
+	_, err := exec.Command(prg, filePath).Output()
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	return nil
+}
+
+func StartConversation(w http.ResponseWriter, r *http.Request) {
+
+	ConversationStarTime = time.Now().Format("15:04:05")
 }
