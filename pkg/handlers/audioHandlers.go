@@ -63,6 +63,7 @@ func Wav(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	duration, err := SubtractTime(ConversationStarTime, audioPlayTime)
+	println(duration)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
@@ -93,9 +94,7 @@ func PlayAudio(filePath string) error {
 	}
 	return nil
 }
-func StartConversation(w http.ResponseWriter, r *http.Request) {
-
-	ConversationStarTime = time.Now()
+func StartConversationApi(w http.ResponseWriter, r *http.Request) {
 
 }
 func SubtractTime(time1 time.Time, time2 time.Time) (int, error) {
@@ -109,4 +108,25 @@ func SubtractTime(time1 time.Time, time2 time.Time) (int, error) {
 		return 0, errors.New("invalid time duration")
 	}
 	return duration, nil
+}
+
+func StartConversation() (time.Time, error) {
+	timeout := time.After(10 * time.Second)
+	ticker := time.Tick(500 * time.Millisecond)
+
+	// Keep trying until we're timed out or get a result/error
+	for {
+		select {
+		case <-timeout:
+			return ConversationStarTime, errors.New("timed out, can't start conversation")
+		case <-ticker:
+			ok, err := exec.Command("source", "/home/rahma/GolandProjects/spear-go/pkg/scripts/diart_run.sh").Output()
+			if err != nil {
+				return ConversationStarTime, errors.New("couldn't set environment for diart")
+			} else if len(string(ok)) > 5 {
+				ConversationStarTime = time.Now()
+				return ConversationStarTime, nil
+			}
+		}
+	}
 }
