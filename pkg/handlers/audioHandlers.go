@@ -7,10 +7,12 @@ import (
 	"github.com/pkg/errors"
 	errs "github.com/spear-app/spear-go/pkg/err"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"os/exec"
+	"syscall"
 	"time"
 )
 
@@ -24,6 +26,7 @@ type StartConv struct {
 }
 
 var ConversationStarTime time.Time
+var cmd *exec.Cmd
 
 func Wav(w http.ResponseWriter, r *http.Request) {
 
@@ -145,4 +148,75 @@ func StartConversation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println("starting conversation .........")
+	cmd := exec.Command("bash", "-c", "source "+"/home/rahma/spear-go/pkg/scripts/diart_run4.sh")
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	stdout, err := cmd.StdoutPipe()
+	cmd.Stderr = cmd.Stdout
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrServerErr.Error(), http.StatusInternalServerError))
+		return
+	}
+	if err := cmd.Start(); err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrServerErr.Error(), http.StatusInternalServerError))
+		return
+	}
+	for {
+		tmp := make([]byte, 1024)
+		_, err := stdout.Read(tmp)
+		if err != nil {
+			// TODO kill process here
+			fmt.Println(err.Error())
+			break
+		}
+		str := string(tmp)
+		if len(str) == 1024 {
+			fmt.Print("str len:", len(str), "\noutput:\n", str)
+			break
+		}
+		/*fmt.Print("str len:", len(str), "\noutput:\n", str)
+		if err != nil {
+			break
+		}*/
+	}
+	/*fmt.Println("sleeping-----------")
+	cmd2 := exec.Command("sleep", "20")
+	if err := cmd2.Run(); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("slept")*/
+	/*for true {
+		//fmt.Println("out:", outb.String(), "err:", errb.String())
+
+		if len(outb.String()) > 0 {
+			fmt.Println("out:", outb.String(), "err:", errb.String())
+		}
+	}
+	fmt.Println("out:", outb.String(), "err:", errb.String())*/
+	//cmd.Wait()
+
+	/*pgid, err := syscall.Getpgid(cmd.Process.Pid)
+	if err == nil {
+		fmt.Println("killing the process")
+		err := syscall.Kill(-pgid, 15)
+		if err != nil {
+			log.Fatal("failed to kill")
+		} else {
+			fmt.Println("process killed")
+		}
+	}
+
+	cmd.Wait()*/
+
+	/*err := cmd.Process.Kill()
+
+	if err != nil {
+		fmt.Println("failed to kill the process")
+	} else {
+		fmt.Println("process killed")
+	}*/
 }

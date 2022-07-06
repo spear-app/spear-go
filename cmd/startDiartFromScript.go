@@ -2,27 +2,21 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os/exec"
 	"syscall"
 )
 
-func startConv() *exec.Cmd {
+func startConv() (*exec.Cmd, error) {
 	fmt.Println("starting conversation .........")
 	cmd := exec.Command("bash", "-c", "source "+"/home/rahma/spear-go/pkg/scripts/diart_run4.sh")
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	/*var outb, errb bytes.Buffer
-	errb.Reset()
-	outb.Reset()
-	cmd.Stdout = &outb
-	cmd.Stderr = &errb*/
 	stdout, err := cmd.StdoutPipe()
 	cmd.Stderr = cmd.Stdout
 	if err != nil {
-		log.Fatal(err.Error())
+		return cmd, err
 	}
 	if err := cmd.Start(); err != nil {
-		log.Fatal(err.Error())
+		return cmd, err
 	}
 	for {
 		tmp := make([]byte, 1024)
@@ -55,7 +49,7 @@ func startConv() *exec.Cmd {
 		}
 	}
 	fmt.Println("out:", outb.String(), "err:", errb.String())*/
-	cmd.Wait()
+	//cmd.Wait()
 
 	/*pgid, err := syscall.Getpgid(cmd.Process.Pid)
 	if err == nil {
@@ -78,10 +72,14 @@ func startConv() *exec.Cmd {
 		fmt.Println("process killed")
 	}*/
 
-	return cmd
+	return cmd, nil
 }
 func main() {
-	startConv()
+	_, err := startConv()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	fmt.Println("finished")
 	/*fmt.Println("sleep now")
 	cmd2 := exec.Command("sleep", "20")
 	if err := cmd2.Run(); err != nil {
