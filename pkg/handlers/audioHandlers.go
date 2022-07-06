@@ -19,6 +19,10 @@ type textAndDiarization struct {
 	diarization string
 }
 
+type StartConv struct {
+	Start_conversation bool `json:"start_conversation"`
+}
+
 var ConversationStarTime time.Time
 
 func Wav(w http.ResponseWriter, r *http.Request) {
@@ -94,9 +98,7 @@ func PlayAudio(filePath string) error {
 	}
 	return nil
 }
-func StartConversationApi(w http.ResponseWriter, r *http.Request) {
 
-}
 func SubtractTime(time1 time.Time, time2 time.Time) (int, error) {
 	hour1, min1, second1 := time1.Clock()
 	hour2, min2, second2 := time2.Clock()
@@ -110,7 +112,7 @@ func SubtractTime(time1 time.Time, time2 time.Time) (int, error) {
 	return duration, nil
 }
 
-func StartConversation() (time.Time, error) {
+func tmpStartConversation() (time.Time, error) {
 	timeout := time.After(10 * time.Second)
 	ticker := time.Tick(500 * time.Millisecond)
 
@@ -129,4 +131,18 @@ func StartConversation() (time.Time, error) {
 			}
 		}
 	}
+}
+
+func StartConversation(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "application/json")
+	//extracting usr obj
+	// TODO get user id
+	var strartConv StartConv
+	json.NewDecoder(r.Body).Decode(&strartConv)
+	if strartConv.Start_conversation == false {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errs.NewResponse("conversation not started", http.StatusBadRequest))
+		return
+	}
+
 }
