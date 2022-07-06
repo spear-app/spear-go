@@ -26,7 +26,7 @@ type StartConv struct {
 }
 
 var ConversationStarTime time.Time
-var cmd *exec.Cmd
+var CMD *exec.Cmd
 
 func Wav(w http.ResponseWriter, r *http.Request) {
 
@@ -148,7 +148,7 @@ func StartConversation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("starting conversation .........")
+	log.Println("starting conversation .........")
 	cmd := exec.Command("bash", "-c", "source "+"/home/rahma/spear-go/pkg/scripts/diart_run4.sh")
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	stdout, err := cmd.StdoutPipe()
@@ -175,13 +175,18 @@ func StartConversation(w http.ResponseWriter, r *http.Request) {
 		}
 		str := string(tmp)
 		if len(str) == 1024 {
-			fmt.Print("str len:", len(str), "\noutput:\n", str)
-			break
+			// process started and running
+			// mark start conversation time
+			// response with ok status
+			ConversationStarTime = time.Now()
+			log.Println("str len:", len(str), "\noutput:\n", str)
+			CMD = cmd
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(errs.NewResponse("conversation started successfully", http.StatusOK))
+			CMD.Wait()
+			return
+
 		}
-		/*fmt.Print("str len:", len(str), "\noutput:\n", str)
-		if err != nil {
-			break
-		}*/
 	}
 	/*fmt.Println("sleeping-----------")
 	cmd2 := exec.Command("sleep", "20")
