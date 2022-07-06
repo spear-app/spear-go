@@ -24,6 +24,9 @@ type textAndDiarization struct {
 type StartConv struct {
 	Start_conversation bool `json:"start_conversation"`
 }
+type EndConv struct {
+	End_conversation bool `json:"end_conversation"`
+}
 
 var ConversationStarTime time.Time
 var CMD *exec.Cmd
@@ -181,47 +184,49 @@ func StartConversation(w http.ResponseWriter, r *http.Request) {
 			ConversationStarTime = time.Now()
 			log.Println("str len:", len(str), "\noutput:\n", str)
 			CMD = cmd
+			go ContinueConversation()
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(errs.NewResponse("conversation started successfully", http.StatusOK))
-			CMD.Wait()
 			return
-
 		}
 	}
-	/*fmt.Println("sleeping-----------")
-	cmd2 := exec.Command("sleep", "20")
-	if err := cmd2.Run(); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("slept")*/
-	/*for true {
-		//fmt.Println("out:", outb.String(), "err:", errb.String())
+}
 
-		if len(outb.String()) > 0 {
-			fmt.Println("out:", outb.String(), "err:", errb.String())
-		}
-	}
-	fmt.Println("out:", outb.String(), "err:", errb.String())*/
-	//cmd.Wait()
+func ContinueConversation() {
+	CMD.Wait()
+}
 
-	/*pgid, err := syscall.Getpgid(cmd.Process.Pid)
+func killConversationProcess() error {
+	pgid, err := syscall.Getpgid(CMD.Process.Pid)
 	if err == nil {
-		fmt.Println("killing the process")
+		log.Println("killing the process")
 		err := syscall.Kill(-pgid, 15)
 		if err != nil {
-			log.Fatal("failed to kill")
+			log.Println("failed to kill")
+			return err
 		} else {
-			fmt.Println("process killed")
+			log.Println("process killed")
 		}
 	}
+	return nil
+}
 
-	cmd.Wait()*/
-
-	/*err := cmd.Process.Kill()
-
+func EndConversation(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "application/json")
+	//extracting usr obj
+	// TODO get user id
+	var endConv EndConv
+	json.NewDecoder(r.Body).Decode(&endConv)
+	if endConv.End_conversation == false {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errs.NewResponse("conversation not started", http.StatusBadRequest))
+		return
+	}
+	err := killConversationProcess()
 	if err != nil {
-		fmt.Println("failed to kill the process")
-	} else {
-		fmt.Println("process killed")
-	}*/
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse("couldn't end conversation, please try again", http.StatusInternalServerError))
+		return
+	}
 }
