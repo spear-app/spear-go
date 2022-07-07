@@ -30,9 +30,15 @@ type EndConv struct {
 
 var ConversationStarTime time.Time
 var CMD *exec.Cmd
+var conversationStarted bool
 
 func Wav(w http.ResponseWriter, r *http.Request) {
 
+	if !conversationStarted {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errs.NewResponse("you didn't started a conversation yet", http.StatusBadRequest))
+		return
+	}
 	//dat, err := ioutil.ReadFile("public_path()" + "/forTest/record.wav")
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -221,6 +227,7 @@ func StartConversation(w http.ResponseWriter, r *http.Request) {
 			ConversationStarTime = time.Now()
 			log.Println("str len:", len(str), "\noutput:\n", str)
 			CMD = cmd
+			conversationStarted = true
 			go ContinueConversation()
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(errs.NewResponse("conversation started successfully", http.StatusOK))
@@ -242,6 +249,7 @@ func killConversationProcess() error {
 			log.Println("failed to kill")
 			return err
 		} else {
+			conversationStarted = false
 			log.Println("process killed")
 		}
 	}
