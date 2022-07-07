@@ -169,7 +169,7 @@ func StartConversation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	timeout := time.After(10 * time.Second)
-	ticker := time.Tick(500 * time.Millisecond)
+	ticker := time.Tick(8 * time.Second)
 
 	// Keep trying until we're timed out or get a result/error
 	for {
