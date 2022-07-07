@@ -71,18 +71,17 @@ func Wav(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// so far have text, now we need to get speaker diarization
-	audioPlayTime := time.Now()
-	err = PlayAudio(filePath)
+	audioPlayTime, err := PlayAudio(filePath)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse("couldn't play audio", http.StatusInternalServerError))
 		return
 	}
 	duration, err := SubtractTime(ConversationStarTime, audioPlayTime)
-	println(duration)
+	log.Println("duration is ", duration)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
+		json.NewEncoder(w).Encode(errs.NewResponse("couldn't get duration", http.StatusInternalServerError))
 		return
 	}
 
@@ -101,14 +100,15 @@ func GetText(filePath string) (string, error) {
 	return string(cmd), nil
 }
 
-func PlayAudio(filePath string) error {
+func PlayAudio(filePath string) (time.Time, error) {
 	prg := "/usr/bin/play"
+	audioPlayTime := time.Now()
 	_, err := exec.Command(prg, filePath).Output()
 	if err != nil {
-		fmt.Println(err)
-		return err
+		log.Println(err)
+		return audioPlayTime, err
 	}
-	return nil
+	return audioPlayTime, nil
 }
 
 func SubtractTime(time1 time.Time, time2 time.Time) (int, error) {
