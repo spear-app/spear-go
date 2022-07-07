@@ -252,6 +252,9 @@ func killConversationProcess() error {
 			conversationStarted = false
 			log.Println("process killed")
 		}
+	} else {
+		log.Println("failed to kill")
+		return err
 	}
 	return nil
 }
