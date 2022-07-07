@@ -168,7 +168,7 @@ func StartConversation(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrServerErr.Error(), http.StatusInternalServerError))
 		return
 	}
-	timeout := time.After(3 * time.Second)
+	timeout := time.After(10 * time.Second)
 	ticker := time.Tick(500 * time.Millisecond)
 
 	// Keep trying until we're timed out or get a result/error
