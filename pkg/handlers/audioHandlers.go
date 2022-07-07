@@ -168,41 +168,44 @@ func StartConversation(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrServerErr.Error(), http.StatusInternalServerError))
 		return
 	}
-	timeout := time.After(10 * time.Second)
-	ticker := time.Tick(8 * time.Second)
+	/*
+		timeout := time.After(10 * time.Second)
+		ticker := time.Tick(8 * time.Second)
 
-	// Keep trying until we're timed out or get a result/error
-	for {
-		select {
-		case <-timeout:
-			log.Println("timed out, can't start conversation")
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(errs.NewResponse("timed out, can't start conversation", http.StatusInternalServerError))
-			return
-		case <-ticker:
-			tmp := make([]byte, 1024)
-			_, err := stdout.Read(tmp)
-			if err != nil {
-				// TODO kill process here
-				fmt.Println(err.Error())
-				break
-			}
-			str := string(tmp)
-			if len(str) == 1024 {
-				// process started and running
-				// mark start conversation time
-				// response with ok status
-				ConversationStarTime = time.Now()
-				log.Println("str len:", len(str), "\noutput:\n", str)
-				CMD = cmd
-				go ContinueConversation()
-				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(errs.NewResponse("conversation started successfully", http.StatusOK))
+		// Keep trying until we're timed out or get a result/error
+		for {
+			select {
+			case <-timeout:
+				log.Println("timed out, can't start conversation")
+				w.WriteHeader(http.StatusInternalServerError)
+				json.NewEncoder(w).Encode(errs.NewResponse("timed out, can't start conversation", http.StatusInternalServerError))
 				return
+			case <-ticker:
+				tmp := make([]byte, 1024)
+				_, err := stdout.Read(tmp)
+				if err != nil {
+					// TODO kill process here
+					fmt.Println(err.Error())
+					break
+				}
+				str := string(tmp)
+				if len(str) == 1024 {
+					// process started and running
+					// mark start conversation time
+					// response with ok status
+					ConversationStarTime = time.Now()
+					log.Println("str len:", len(str), "\noutput:\n", str)
+					CMD = cmd
+					go ContinueConversation()
+					w.WriteHeader(http.StatusOK)
+					json.NewEncoder(w).Encode(errs.NewResponse("conversation started successfully", http.StatusOK))
+					return
+				}
 			}
 		}
-	}
-	/*for {
+	*/
+
+	for {
 		tmp := make([]byte, 1024)
 		_, err := stdout.Read(tmp)
 		if err != nil {
@@ -223,7 +226,7 @@ func StartConversation(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(errs.NewResponse("conversation started successfully", http.StatusOK))
 			return
 		}
-	}*/
+	}
 }
 
 func ContinueConversation() {
