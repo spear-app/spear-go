@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"strconv"
+	"github.com/spear-app/spear-go/pkg/handlers"
 )
 
 func main() {
@@ -10,7 +10,11 @@ func main() {
 	if err != nil {
 		log.Println(err.Error())
 	}*/
-	timeInFile, err := strconv.ParseFloat("3.14159265", 8)
-	fmt.Println(timeInFile, err.Error())
-
+	/*timeInFile, err := strconv.ParseFloat("3.141", 32)
+	fmt.Println(timeInFile, err)*/
+	output, err := handlers.GetSpeakerFromDiartOutput("/home/rahma/sound_output/live_recording.rttm", 563)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	fmt.Println("output: ", output)
 }

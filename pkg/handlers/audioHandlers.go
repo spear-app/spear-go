@@ -293,40 +293,47 @@ func EndConversation(w http.ResponseWriter, r *http.Request) {
 	return nil
 }
 */
-
-func GetSpeakersAndDuration(filePath string, duration int) (string, error) {
-	durationEnd := duration + 5
+/*
+ */
+func GetSpeakerFromDiartOutput(filePath string, audioStart float64) (string, error) {
+	// TODO redirect to another fixed size file
+	audioEnd := audioStart + 5
 	speakersInAudioInterval := make(map[string]int)
-
 	readFile, err := os.Open(filePath)
-
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+		return "", errors.New("couldn't open diart output file")
 	}
 	fileScanner := bufio.NewScanner(readFile)
 	fileScanner.Split(bufio.ScanLines)
 	for fileScanner.Scan() {
 		lineSlice := strings.Split(fileScanner.Text(), " ")
-		durationStr := strings.Split(lineSlice[4], ".")
-		//log.Println(durationStr[0])
-		timeInFile, err := strconv.Atoi(durationStr[0])
-		if err != nil {
-			log.Println(err.Error())
-			readFile.Close()
-			return "", err
+
+		first, _ := strconv.ParseFloat(lineSlice[3], 64)
+		durationInFile, _ := strconv.ParseFloat(lineSlice[4], 32)
+		second := first + durationInFile
+		if first > audioEnd {
+			log.Println("break from loop ", first, " ", second, " ")
+			break
 		}
-		if timeInFile >= duration && timeInFile <= (durationEnd) {
-			speakersInAudioInterval[lineSlice[8]]++
+		var minEnd, maxStart float64
+		if audioStart < first {
+			minEnd = audioEnd
+			maxStart = first
+		} else {
+			minEnd = second
+			maxStart = audioStart
 		}
-		if timeInFile > durationEnd {
-			readFile.Close()
-			return "", errors.New("no speakers found")
+		if !(maxStart > minEnd) {
+			log.Println(first, " ", second, " ", "speaker: ", lineSlice[7])
+			speakersInAudioInterval[lineSlice[7]]++
 		}
 	}
 	if len(speakersInAudioInterval) == 0 {
 		readFile.Close()
 		return "", errors.New("no speakers found")
 	}
+	log.Println("map:\n", speakersInAudioInterval)
 	max := -1
 	for _, count := range speakersInAudioInterval {
 		if count > max {
