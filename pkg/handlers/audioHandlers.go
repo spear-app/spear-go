@@ -20,8 +20,8 @@ import (
 )
 
 type textAndDiarization struct {
-	text        string
-	diarization string
+	Text        string `json:"text"`
+	Diarization string `json:"speaker"`
 }
 
 type StartConv struct {
@@ -67,8 +67,8 @@ func Wav(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var textAndSpeakerResponse textAndDiarization
-	textAndSpeakerResponse.text, err = GetText(filePath)
-	log.Println("text is:\n", textAndSpeakerResponse.text)
+	textAndSpeakerResponse.Text, err = GetText(filePath)
+	log.Println("text is:\n", textAndSpeakerResponse.Text)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse("couldn't get text from speech", http.StatusInternalServerError))
@@ -83,13 +83,29 @@ func Wav(w http.ResponseWriter, r *http.Request) {
 	}
 	duration, err := SubtractTime(ConversationStarTime, audioPlayTime)
 	log.Println("duration is ", duration)
+	if duration > 900 {
+		//TODO kill the conversation
+		err := killConversationProcess()
+		if err != nil {
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(errs.NewResponse("conversation took more than 15 minutes, ending..", http.StatusOK))
+		return
+	}
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse("couldn't get duration", http.StatusInternalServerError))
 		return
 	}
-
+	textAndSpeakerResponse.Diarization, err = GetSpeakerFromDiartOutput("/home/rahma/sound_output/live_recording.rttm", float64(duration))
+	if err != nil {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusOK))
+		return
+	}
 	w.WriteHeader(200)
+	json.NewEncoder(w).Encode(textAndSpeakerResponse)
 	return
 }
 
@@ -121,7 +137,7 @@ func SubtractTime(time1 time.Time, time2 time.Time) (int, error) {
 	if hour2-hour1 != 0 {
 		return 0, errors.New("max conversation time is 15 minutes")
 	}
-	duration := (min2*60 + second2) - (min1*60 + second1)
+	duration := (hour2*60*60 + min2*60 + second2) - (hour1*60*60 + min1*60 + second1)
 	if duration <= 0 {
 		return 0, errors.New("invalid time duration")
 	}
@@ -297,9 +313,13 @@ func EndConversation(w http.ResponseWriter, r *http.Request) {
  */
 func GetSpeakerFromDiartOutput(filePath string, audioStart float64) (string, error) {
 	// TODO redirect to another fixed size file
+	_, err := exec.Command("cp", filePath, "/home/rahma/out.txt/").Output()
+	if err != nil {
+		return "", err
+	}
 	audioEnd := audioStart + 5
 	speakersInAudioInterval := make(map[string]int)
-	readFile, err := os.Open(filePath)
+	readFile, err := os.Open("/home/rahma/out.txt/live_recording.rttm")
 	if err != nil {
 		log.Println(err)
 		return "", errors.New("couldn't open diart output file")
