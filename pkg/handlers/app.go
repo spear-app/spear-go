@@ -42,6 +42,7 @@ func Start() {
 	router.HandleFunc("/api/audio/send_audio", middleware.TokenVerifyMiddleware(Wav)).Methods(http.MethodPost)
 	router.HandleFunc("/api/audio/start_conversation", middleware.TokenVerifyMiddleware(StartConversation)).Methods(http.MethodPost)
 	router.HandleFunc("/api/audio/end_conversation", middleware.TokenVerifyMiddleware(EndConversation)).Methods(http.MethodPost)
+	router.HandleFunc("/api/audio/recorded_audio", middleware.TokenVerifyMiddleware(RecordedAudio)).Methods(http.MethodPost)
 
 	s := gocron.NewScheduler(time.UTC)
 
