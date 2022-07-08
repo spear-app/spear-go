@@ -30,6 +30,9 @@ type StartConv struct {
 type EndConv struct {
 	End_conversation bool `json:"end_conversation"`
 }
+type AudioText struct {
+	Text string `json:"text"`
+}
 
 var ConversationStarTime time.Time
 var CMD *exec.Cmd
@@ -368,4 +371,46 @@ func GetSpeakerFromDiartOutput(filePath string, audioStart float64) (string, err
 	}
 	readFile.Close()
 	return "", errors.New("no speakers found")
+}
+
+func RecordedAudio(w http.ResponseWriter, r *http.Request) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	writer.FormDataContentType()
+	file, h, err := r.FormFile("audio")
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusBadRequest))
+		return
+	}
+	filePath := "/home/rahma/recorded_audio/" + h.Filename
+	tmpfile, err := os.Create(filePath)
+	defer tmpfile.Close()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
+		return
+	}
+	_, err = io.Copy(tmpfile, file)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
+		return
+	}
+	fileInWav := "/home/rahma/recorded_audio/" + h.Filename + "converted.wav"
+	_, err = exec.Command("ffmpeg", "-i", filePath, "-vn", fileInWav).Output()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse("couldn't convert opus to wav", http.StatusInternalServerError))
+		return
+	}
+	var audioText AudioText
+	audioText.Text, err = GetText(fileInWav)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(audioText)
 }
