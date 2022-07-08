@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,8 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -280,7 +283,62 @@ func EndConversation(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getSpeakersAndDuration() ([]string, []int, error) {
-	cmd := exec.Command("bash", "-c", "/home/rahma/spear-go/pkg/scripts/awk_run.sh")
+/*func GetSpeakersAndDurationInFiles() error {
+	cmd := exec.Command("bash", "-c", "/home/rahma/spear-go/pkg/scripts/awk_run.sh ~/sound_output/live_recording.rttm ~/out.txt/1T.txt ~/out.txt/1S.txt")
+	err := cmd.Run()
+	log.Println("run awk")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+*/
 
+func GetSpeakersAndDuration(filePath string, duration int) (string, error) {
+	durationEnd := duration + 5
+	speakersInAudioInterval := make(map[string]int)
+
+	readFile, err := os.Open(filePath)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+	fileScanner := bufio.NewScanner(readFile)
+	fileScanner.Split(bufio.ScanLines)
+	for fileScanner.Scan() {
+		lineSlice := strings.Split(fileScanner.Text(), " ")
+		durationStr := strings.Split(lineSlice[4], ".")
+		//log.Println(durationStr[0])
+		timeInFile, err := strconv.Atoi(durationStr[0])
+		if err != nil {
+			log.Println(err.Error())
+			readFile.Close()
+			return "", err
+		}
+		if timeInFile >= duration && timeInFile <= (durationEnd) {
+			speakersInAudioInterval[lineSlice[8]]++
+		}
+		if timeInFile > durationEnd {
+			readFile.Close()
+			return "", errors.New("no speakers found")
+		}
+	}
+	if len(speakersInAudioInterval) == 0 {
+		readFile.Close()
+		return "", errors.New("no speakers found")
+	}
+	max := -1
+	for _, count := range speakersInAudioInterval {
+		if count > max {
+			max = count
+		}
+	}
+	for key, value := range speakersInAudioInterval {
+		if value == max {
+			readFile.Close()
+			return key, nil
+		}
+	}
+	readFile.Close()
+	return "", errors.New("no speakers found")
 }
