@@ -65,6 +65,7 @@ func Wav(w http.ResponseWriter, r *http.Request) {
 	}
 	var textAndSpeakerResponse textAndDiarization
 	textAndSpeakerResponse.text, err = GetText(filePath)
+	log.Println("text is:\n", textAndSpeakerResponse.text)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse("couldn't get text from speech", http.StatusInternalServerError))
@@ -277,4 +278,8 @@ func EndConversation(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(errs.NewResponse("couldn't end conversation, please try again", http.StatusInternalServerError))
 		return
 	}
+}
+
+func getSpeakersAndDuration() ([]string, []int, error) {
+
 }

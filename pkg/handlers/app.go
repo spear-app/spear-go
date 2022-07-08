@@ -39,7 +39,7 @@ func Start() {
 	router.HandleFunc("/api/notification/create", middleware.TokenVerifyMiddleware(notificationHandler.Create)).Methods(http.MethodPost)
 	router.HandleFunc("/api/notification/getNotificationById/{id:[0-9]+}", middleware.TokenVerifyMiddleware(notificationHandler.ReadByNotificationID)).Methods(http.MethodGet)
 	router.HandleFunc("/api/notification/getNotificationByUserId/{id:[0-9]+}", middleware.TokenVerifyMiddleware(notificationHandler.ReadByUserID)).Methods(http.MethodGet)
-	router.HandleFunc("/api/send_audio", middleware.TokenVerifyMiddleware(Wav)).Methods(http.MethodPost)
+	router.HandleFunc("/api/audio/send_audio", middleware.TokenVerifyMiddleware(Wav)).Methods(http.MethodPost)
 	router.HandleFunc("/api/audio/start_conversation", middleware.TokenVerifyMiddleware(StartConversation)).Methods(http.MethodPost)
 	router.HandleFunc("/api/audio/end_conversation", middleware.TokenVerifyMiddleware(EndConversation)).Methods(http.MethodPost)
 
