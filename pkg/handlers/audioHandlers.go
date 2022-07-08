@@ -281,5 +281,6 @@ func EndConversation(w http.ResponseWriter, r *http.Request) {
 }
 
 func getSpeakersAndDuration() ([]string, []int, error) {
+	cmd := exec.Command("bash", "-c", "/home/rahma/spear-go/pkg/scripts/awk_run.sh")
 
 }
