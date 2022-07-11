@@ -252,6 +252,9 @@ func StartConversation(w http.ResponseWriter, r *http.Request) {
 			CMD = cmd
 			conversationStarted = true
 			go ContinueConversation()
+			log.Println("starting foo")
+			newtimer := time.NewTimer(15 * time.Minute)
+			go Foo(newtimer)
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(errs.NewResponse("conversation started successfully", http.StatusOK))
 			return
@@ -264,6 +267,10 @@ func ContinueConversation() {
 }
 
 func killConversationProcess() error {
+	if CMD == nil {
+		log.Println("here process not started")
+		return errors.New("process is not started to be killed")
+	}
 	pgid, err := syscall.Getpgid(CMD.Process.Pid)
 	if err == nil {
 		log.Println("killing the process")
@@ -290,7 +297,7 @@ func EndConversation(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&endConv)
 	if endConv.End_conversation == false {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(errs.NewResponse("conversation not started", http.StatusBadRequest))
+		json.NewEncoder(w).Encode(errs.NewResponse("to end conversation set flag to true", http.StatusBadRequest))
 		return
 	}
 	err := killConversationProcess()
@@ -413,4 +420,20 @@ func RecordedAudio(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(audioText)
+}
+
+func Foo(newtimer *time.Timer) {
+	<-newtimer.C
+
+	// Printed when timer is fired
+	log.Println("timer inactivated")
+	err := killConversationProcess()
+	if err != nil {
+		log.Println("couldn't kill process after 15 minutes")
+	}
+	stoptimer := newtimer.Stop()
+	if stoptimer {
+		log.Println("The timer is stopped!")
+	}
+	// Do heavy work
 }
