@@ -30,6 +30,9 @@ type StartConv struct {
 type EndConv struct {
 	End_conversation bool `json:"end_conversation"`
 }
+type EndDetection struct {
+	EndDetection bool `json:"end_detection"`
+}
 type AudioText struct {
 	Text string `json:"text"`
 }
@@ -526,4 +529,23 @@ func killSoundProcess() error {
 		return err
 	}
 	return nil
+}
+func EndSoundDetection(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "application/json")
+	//extracting usr obj
+	// TODO get user id
+	var endSoundDetection EndDetection
+	json.NewDecoder(r.Body).Decode(&endSoundDetection)
+	if endSoundDetection.EndDetection == false {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errs.NewResponse("to end sound detection set flag to true", http.StatusBadRequest))
+		return
+	}
+	err := killSoundProcess()
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse("couldn't end sound detection process, please try again", http.StatusInternalServerError))
+		return
+	}
 }
