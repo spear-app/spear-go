@@ -505,3 +505,25 @@ func SoundDetection(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(DetectionObj)
 }
+func killSoundProcess() error {
+	if CMDDetection == nil {
+		log.Println("here process detection not started")
+		return errors.New("process detection is not started to be killed")
+	}
+	pgid, err := syscall.Getpgid(CMD.Process.Pid)
+	if err == nil {
+		log.Println("killing the process detection")
+		err := syscall.Kill(-pgid, 15)
+		if err != nil {
+			log.Println("failed to kill")
+			return err
+		} else {
+			conversationStarted = false
+			log.Println("process detection killed")
+		}
+	} else {
+		log.Println("failed to kill")
+		return err
+	}
+	return nil
+}
