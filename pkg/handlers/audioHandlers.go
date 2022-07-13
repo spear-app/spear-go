@@ -33,9 +33,13 @@ type EndConv struct {
 type AudioText struct {
 	Text string `json:"text"`
 }
+type Detection struct {
+	Sound string `json:"sound"`
+}
 
 var ConversationStarTime time.Time
 var CMD *exec.Cmd
+var CMDDetection *exec.Cmd
 var conversationStarted bool
 
 func Wav(w http.ResponseWriter, r *http.Request) {
@@ -391,7 +395,6 @@ func GetSpeakerFromDiartOutput(filePath string, audioStart float64) (string, err
 	readFile.Close()
 	return "", errors.New("no speakers found")
 }
-
 func RecordedAudio(w http.ResponseWriter, r *http.Request) {
 	DeleteRecordedAudioFiles()
 	body := &bytes.Buffer{}
@@ -458,4 +461,47 @@ func Foo(newtimer *time.Timer) {
 		log.Println("The timer is stopped!")
 	}
 	// Do heavy work
+}
+func SoundDetection(w http.ResponseWriter, r *http.Request) {
+	var command_output string
+	CMDDetection = exec.Command("bash", "-c", "python3 /home/rahma/sound_detection/SoundDetection.py print_prediction /home/rahma/sound_detection/testing_data/whatsapp.wav")
+	CMDDetection.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	stdout, err := CMDDetection.StdoutPipe()
+	CMDDetection.Stderr = CMDDetection.Stdout
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrServerErr.Error(), http.StatusInternalServerError))
+		return
+	}
+	if err := CMDDetection.Start(); err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrServerErr.Error(), http.StatusInternalServerError))
+		return
+	}
+	for {
+		tmp := make([]byte, 1024)
+		_, err := stdout.Read(tmp)
+		if err != nil {
+			// TODO kill process here
+			log.Println(err.Error())
+			break
+		}
+		str := string(tmp)
+		if len(str) != 0 {
+			command_output += str
+			//log.Println(str)
+		}
+	}
+	var DetectionObj Detection
+	if strings.Contains(command_output, "doorbell") {
+		DetectionObj.Sound = "doorbell"
+	} else if strings.Contains(command_output, "knock") {
+		DetectionObj.Sound = "knock"
+	} else {
+		DetectionObj.Sound = "other"
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(DetectionObj)
 }
