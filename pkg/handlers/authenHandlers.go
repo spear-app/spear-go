@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"github.com/spear-app/spear-go/pkg/domain/user"
 	emailVerification "github.com/spear-app/spear-go/pkg/emailVerfication"
 	errs "github.com/spear-app/spear-go/pkg/err"
@@ -291,7 +290,7 @@ func (authenHandler AuthenHandlers) VerifyEmail(w http.ResponseWriter, r *http.R
 	id := vars["id"]
 	//var userObj user.User
 	intId, err := strconv.Atoi(id)
-	fmt.Println(intId)
+	log.Println(intId)
 	userObj.ID = uint(intId)
 	err = authenHandler.service.ReadOTP(&userObj)
 	err = bcrypt.CompareHashAndPassword([]byte(userObj.OTP), []byte(otp))

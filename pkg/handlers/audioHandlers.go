@@ -104,7 +104,8 @@ func Wav(w http.ResponseWriter, r *http.Request) {
 	textAndSpeakerResponse.Diarization, err = GetSpeakerFromDiartOutput("/home/rahma/sound_output/live_recording.rttm", float64(duration))
 	if err != nil {
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusOK))
+		textAndSpeakerResponse.Diarization = "no speaker found"
+		json.NewEncoder(w).Encode(textAndSpeakerResponse)
 		return
 	}
 	w.WriteHeader(200)
@@ -115,20 +116,31 @@ func Wav(w http.ResponseWriter, r *http.Request) {
 func GetText(filePath string) (string, error) {
 	prg := "/usr/bin/python3"
 	arg1 := "/home/rahma/spear-python/speech_to_text.py"
-	cmd, err := exec.Command(prg, arg1, filePath).Output()
+	cmd := exec.Command(prg, arg1, filePath)
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(fmt.Sprint(err) + ": " + stderr.String())
 		return "", err
 	}
-	return string(cmd), nil
+	return out.String(), nil
+
 }
 
 func PlayAudio(filePath string) (time.Time, error) {
 	prg := "/usr/bin/play"
 	audioPlayTime := time.Now()
-	_, err := exec.Command(prg, filePath).Output()
+	cmd := exec.Command(prg, filePath)
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
 	if err != nil {
-		log.Println(err)
+		log.Println(fmt.Sprint(err) + ": " + stderr.String())
 		return audioPlayTime, err
 	}
 	return audioPlayTime, nil
@@ -381,6 +393,7 @@ func GetSpeakerFromDiartOutput(filePath string, audioStart float64) (string, err
 }
 
 func RecordedAudio(w http.ResponseWriter, r *http.Request) {
+	DeleteRecordedAudioFiles()
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	writer.FormDataContentType()
@@ -394,12 +407,14 @@ func RecordedAudio(w http.ResponseWriter, r *http.Request) {
 	tmpfile, err := os.Create(filePath)
 	defer tmpfile.Close()
 	if err != nil {
+		log.Println("here")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
 		return
 	}
 	_, err = io.Copy(tmpfile, file)
 	if err != nil {
+		log.Println("here2")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
 		return
@@ -412,8 +427,10 @@ func RecordedAudio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var audioText AudioText
+	log.Println("fileInWavPath ", fileInWav)
 	audioText.Text, err = GetText(fileInWav)
 	if err != nil {
+		log.Println("here3")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
 		return
@@ -421,7 +438,12 @@ func RecordedAudio(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(audioText)
 }
-
+func DeleteRecordedAudioFiles() {
+	_, err := exec.Command("bash", "-c", "rm -f /home/rahma/recorded_audio/*").Output()
+	if err != nil {
+		log.Println("couldn't delete recorded audio files")
+	}
+}
 func Foo(newtimer *time.Timer) {
 	<-newtimer.C
 

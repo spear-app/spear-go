@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/spear-app/spear-go/pkg/domain/user"
+	"log"
 )
 
 type AuthenRepositoryDb struct {
@@ -50,11 +51,13 @@ func (r AuthenRepositoryDb) VerifyEmail(user *user.User) error {
 	var name string
 	row := r.db.QueryRow(`SELECT name FROM users WHERE id= $1`, user.ID)
 	err := row.Scan(&name)
+	log.Println(name)
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
 	_, err = r.db.Exec(`UPDATE users SET email_verified=true WHERE id=$1`, user.ID)
+	log.Println(user.ID, " ", user.EmailVerified)
 	if err != nil {
 		fmt.Println(err)
 		return err

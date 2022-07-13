@@ -49,5 +49,5 @@ func Start() {
 	s.Every(1).Day().At("00:00").Do(func() { utils.DeleteJobInternal(dbConnection) })
 
 	s.StartAsync()
-	log.Fatal(http.ListenAndServe("0.0.0.0:8000", handlers.CORS(headers, methods, origins)(router)))
+	log.Fatal(http.ListenAndServe(":8000", handlers.CORS(headers, methods, origins)(router)))
 }
