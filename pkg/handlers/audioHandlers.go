@@ -6,7 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
+	"github.com/spear-app/spear-go/pkg/domain/notification"
+	"github.com/spear-app/spear-go/pkg/driver"
 	errs "github.com/spear-app/spear-go/pkg/err"
+	"github.com/spear-app/spear-go/pkg/middleware"
+	"github.com/spear-app/spear-go/pkg/service"
 	"io"
 	"log"
 	"mime/multipart"
@@ -25,7 +29,8 @@ type textAndDiarization struct {
 }
 
 type StartConv struct {
-	Start_conversation bool `json:"start_conversation"`
+	Start_conversation bool   `json:"start_conversation"`
+	Language           string `json:"language"`
 }
 type EndConv struct {
 	End_conversation bool `json:"end_conversation"`
@@ -42,11 +47,11 @@ type Detection struct {
 
 var ConversationStarTime time.Time
 var CMD *exec.Cmd
-var CMDDetection *exec.Cmd
+
+//var CMDDetection *exec.Cmd
 var conversationStarted bool
 
 func Wav(w http.ResponseWriter, r *http.Request) {
-
 	if !conversationStarted {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(errs.NewResponse("you didn't started a conversation yet", http.StatusBadRequest))
@@ -188,9 +193,11 @@ func tmpStartConversation() (time.Time, error) {
 }
 
 func StartConversation(w http.ResponseWriter, r *http.Request) {
+	DeleteRecordedAudioFiles("/home/rahma/conversation_audio/")
 	w.Header().Add("Content-Type", "application/json")
 	//extracting usr obj
 	// TODO get user id
+
 	var strartConv StartConv
 	json.NewDecoder(r.Body).Decode(&strartConv)
 	if strartConv.Start_conversation == false {
@@ -198,7 +205,20 @@ func StartConversation(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(errs.NewResponse("conversation not started", http.StatusBadRequest))
 		return
 	}
+	var supportedLanguages = [5]string{"ar-EG", "en-US", "de-DE", "it-IT", "fr-BE"}
+	language := ""
+	for _, lang := range supportedLanguages {
+		if strartConv.Language == lang {
+			language = lang
+			break
+		}
+	}
 
+	if language == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errs.NewResponse("you should specify language", http.StatusBadRequest))
+		return
+	}
 	log.Println("starting conversation .........")
 	cmd := exec.Command("bash", "-c", "source "+"/home/rahma/spear-go/pkg/scripts/diart_run4.sh")
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -399,7 +419,7 @@ func GetSpeakerFromDiartOutput(filePath string, audioStart float64) (string, err
 	return "", errors.New("no speakers found")
 }
 func RecordedAudio(w http.ResponseWriter, r *http.Request) {
-	DeleteRecordedAudioFiles()
+	DeleteRecordedAudioFiles("/home/rahma/recorded_audio/*")
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	writer.FormDataContentType()
@@ -444,8 +464,8 @@ func RecordedAudio(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(audioText)
 }
-func DeleteRecordedAudioFiles() {
-	_, err := exec.Command("bash", "-c", "rm -f /home/rahma/recorded_audio/*").Output()
+func DeleteRecordedAudioFiles(path string) {
+	_, err := exec.Command("bash", "-c", "rm -f"+path).Output()
 	if err != nil {
 		log.Println("couldn't delete recorded audio files")
 	}
@@ -466,18 +486,36 @@ func Foo(newtimer *time.Timer) {
 	// Do heavy work
 }
 func SoundDetection(w http.ResponseWriter, r *http.Request) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	writer.FormDataContentType()
+	file, h, err := r.FormFile("audio")
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusBadRequest))
+		return
+	}
+	filePath := "/home/rahma/detection_api_audios/" + h.Filename
+	tmpfile, err := os.Create(filePath)
+	defer tmpfile.Close()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
+		return
+	}
+	_, err = io.Copy(tmpfile, file)
 	var command_output string
-	CMDDetection = exec.Command("bash", "-c", "python3 /home/rahma/sound_detection/SoundDetection.py print_prediction /home/rahma/sound_detection/testing_data/whatsapp.wav")
-	CMDDetection.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	stdout, err := CMDDetection.StdoutPipe()
-	CMDDetection.Stderr = CMDDetection.Stdout
+	cmd := exec.Command("bash", "-c", "python3 /home/rahma/sound_detection/SoundDetection.py print_prediction "+filePath)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	stdout, err := cmd.StdoutPipe()
+	cmd.Stderr = cmd.Stdout
 	if err != nil {
 		log.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrServerErr.Error(), http.StatusInternalServerError))
 		return
 	}
-	if err := CMDDetection.Start(); err != nil {
+	if err := cmd.Start(); err != nil {
 		log.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrServerErr.Error(), http.StatusInternalServerError))
@@ -497,55 +535,44 @@ func SoundDetection(w http.ResponseWriter, r *http.Request) {
 			//log.Println(str)
 		}
 	}
-	var DetectionObj Detection
+	//var DetectionObj Detection
+	dbConnection := driver.GetDbConnetion()
+	notificationHandler := NotificationHandlers{service.NewNotificationService(notification.NewNotificationRepositoryDb(dbConnection))}
+	//log.Println(command_output)
+	var usrID int
+	usrID = middleware.ClaimsVar.UserId
+	var notiObj notification.Notification
 	if strings.Contains(command_output, "doorbell") {
-		DetectionObj.Sound = "doorbell"
-	} else if strings.Contains(command_output, "knock") {
-		DetectionObj.Sound = "knock"
-	} else {
-		DetectionObj.Sound = "other"
-	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(DetectionObj)
-}
-func killSoundProcess() error {
-	if CMDDetection == nil {
-		log.Println("here process detection not started")
-		return errors.New("process detection is not started to be killed")
-	}
-	pgid, err := syscall.Getpgid(CMD.Process.Pid)
-	if err == nil {
-		log.Println("killing the process detection")
-		err := syscall.Kill(-pgid, 15)
+		//DetectionObj.Sound = "doorbell"
+		notiObj = setNotificationAttributes("doorbell", "there's doorbell sound near you", usrID)
+		err = notificationHandler.CreateNotificationInternally(&notiObj)
 		if err != nil {
-			log.Println("failed to kill")
-			return err
-		} else {
-			conversationStarted = false
-			log.Println("process detection killed")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
+			return
+		}
+	} else if strings.Contains(command_output, "knock") {
+		//DetectionObj.Sound = "knock"
+		notiObj = setNotificationAttributes("knock", "there's knock sound near you", usrID)
+		fmt.Println("notiObj", notiObj)
+		err = notificationHandler.CreateNotificationInternally(&notiObj)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
+			return
 		}
 	} else {
-		log.Println("failed to kill")
-		return err
+		//DetectionObj.Sound = "other"
+		notiObj.Title = "other"
 	}
-	return nil
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(notiObj)
 }
-func EndSoundDetection(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "application/json")
-	//extracting usr obj
-	// TODO get user id
-	var endSoundDetection EndDetection
-	json.NewDecoder(r.Body).Decode(&endSoundDetection)
-	if endSoundDetection.EndDetection == false {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(errs.NewResponse("to end sound detection set flag to true", http.StatusBadRequest))
-		return
-	}
-	err := killSoundProcess()
-	if err != nil {
-		log.Println(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(errs.NewResponse("couldn't end sound detection process, please try again", http.StatusInternalServerError))
-		return
-	}
+
+func setNotificationAttributes(title string, body string, usrID int) notification.Notification {
+	var notiObj notification.Notification
+	notiObj.Title = title
+	notiObj.UserUID = usrID
+	notiObj.Body = body
+	return notiObj
 }

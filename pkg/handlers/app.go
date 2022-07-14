@@ -44,7 +44,7 @@ func Start() {
 	router.HandleFunc("/api/audio/end_conversation", middleware.TokenVerifyMiddleware(EndConversation)).Methods(http.MethodPost)
 	router.HandleFunc("/api/audio/recorded_audio", middleware.TokenVerifyMiddleware(RecordedAudio)).Methods(http.MethodPost)
 	router.HandleFunc("/api/audio/sound_detection", middleware.TokenVerifyMiddleware(SoundDetection)).Methods(http.MethodPost)
-	router.HandleFunc("/api/audio/end_sound_detection", middleware.TokenVerifyMiddleware(EndSoundDetection)).Methods(http.MethodPost)
+	//router.HandleFunc("/api/audio/end_sound_detection", middleware.TokenVerifyMiddleware(EndSoundDetection)).Methods(http.MethodPost)
 
 	s := gocron.NewScheduler(time.UTC)
 

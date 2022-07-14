@@ -31,16 +31,16 @@ func GenerateToken(user user.User) (string, error) {
 	claims["user_id"] = user.ID
 	claims["name"] = user.Name
 	claims["iat"] = time.Now().Unix()
-	claims["exp"] = time.Now().Add(time.Hour * 1).Unix() //Token expires after 1 hour
+	claims["exp"] = time.Now().Add(time.Hour * 2).Unix() //Token expires after 1 hour
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(os.Getenv("API_SECRET")))
 }
 
-func DeleteJobInternal(db *sql.DB){
+func DeleteJobInternal(db *sql.DB) {
 	sqlStatement := `DELETE FROM notifications`
 	_, err := db.Exec(sqlStatement)
 	if err != nil {
-  		fmt.Println(err)
+		fmt.Println(err)
 	}
 }

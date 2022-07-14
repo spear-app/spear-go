@@ -12,7 +12,7 @@ func GetDbConnetion() *sql.DB {
 	db, err := sql.Open("pgx", dataSourceName)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("unable to conect to db"))
-		panic(err)
+
 	}
 	log.Println("connected to db ")
 
@@ -21,8 +21,11 @@ func GetDbConnetion() *sql.DB {
 	if err != nil {
 		fmt.Println(err)
 		log.Fatal("cannot ping db")
-		panic(err)
 	}
 	log.Println("pinged db")
 	return db
+}
+
+func CloseDB(db *sql.DB) error {
+	return db.Close()
 }
