@@ -47,6 +47,7 @@ type Detection struct {
 
 var ConversationStarTime time.Time
 var CMD *exec.Cmd
+var language = ""
 
 //var CMDDetection *exec.Cmd
 var conversationStarted bool
@@ -128,7 +129,8 @@ func Wav(w http.ResponseWriter, r *http.Request) {
 func GetText(filePath string) (string, error) {
 	prg := "/usr/bin/python3"
 	arg1 := "/home/rahma/spear-python/speech_to_text.py"
-	cmd := exec.Command(prg, arg1, filePath)
+	//language = "en-US"
+	cmd := exec.Command(prg, arg1, filePath, language)
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
@@ -206,7 +208,7 @@ func StartConversation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var supportedLanguages = [5]string{"ar-EG", "en-US", "de-DE", "it-IT", "fr-BE"}
-	language := ""
+
 	for _, lang := range supportedLanguages {
 		if strartConv.Language == lang {
 			language = lang

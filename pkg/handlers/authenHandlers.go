@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"github.com/spear-app/spear-go/pkg/domain/user"
 	emailVerification "github.com/spear-app/spear-go/pkg/emailVerfication"
 	errs "github.com/spear-app/spear-go/pkg/err"
@@ -103,6 +104,7 @@ func (authenHandler AuthenHandlers) Signup(w http.ResponseWriter, r *http.Reques
 	//inserting the hashed code into the database
 	userObj.OTP = string(hashOTP)
 	err = authenHandler.service.InsertOTP(&userObj)
+	fmt.Println("otp inserted")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
@@ -183,6 +185,7 @@ func (authenHandler AuthenHandlers) Login(w http.ResponseWriter, r *http.Request
 
 	data.Token = token
 	//sending the response
+	fmt.Println("user logged in ", auth.User)
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(data)
 }
