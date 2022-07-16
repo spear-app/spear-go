@@ -28,6 +28,7 @@ func Start() {
 	driver.Seed(dbConnection)
 
 	authenHandler := AuthenHandlers{service.NewAuthenService(authen.NewAuthenRepositoryDb(dbConnection))}
+	audioHandler := AudioHandlers{service.NewAudioService(notification.NewNotificationRepositoryDb(dbConnection))}
 	notificationHandler := NotificationHandlers{service.NewNotificationService(notification.NewNotificationRepositoryDb(dbConnection))}
 	//authorization endpoints
 	router.HandleFunc("/api/signup", authenHandler.Signup).Methods(http.MethodPost)
@@ -43,11 +44,13 @@ func Start() {
 	router.HandleFunc("/api/audio/start_conversation", middleware.TokenVerifyMiddleware(StartConversation)).Methods(http.MethodPost)
 	router.HandleFunc("/api/audio/end_conversation", middleware.TokenVerifyMiddleware(EndConversation)).Methods(http.MethodPost)
 	router.HandleFunc("/api/audio/recorded_audio", middleware.TokenVerifyMiddleware(RecordedAudio)).Methods(http.MethodPost)
+	router.HandleFunc("/api/audio/sound_detection", middleware.TokenVerifyMiddleware(audioHandler.SoundDetection)).Methods(http.MethodPost)
+	//router.HandleFunc("/api/audio/end_sound_detection", middleware.TokenVerifyMiddleware(EndSoundDetection)).Methods(http.MethodPost)
 
 	s := gocron.NewScheduler(time.UTC)
 
 	s.Every(1).Day().At("00:00").Do(func() { utils.DeleteJobInternal(dbConnection) })
 
 	s.StartAsync()
-	log.Fatal(http.ListenAndServe("0.0.0.0:8000", handlers.CORS(headers, methods, origins)(router)))
+	log.Fatal(http.ListenAndServe(":8000", handlers.CORS(headers, methods, origins)(router)))
 }

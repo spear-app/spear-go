@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/spear-app/spear-go/pkg/domain/user"
+	"log"
 )
 
 type AuthenRepositoryDb struct {
@@ -50,11 +51,13 @@ func (r AuthenRepositoryDb) VerifyEmail(user *user.User) error {
 	var name string
 	row := r.db.QueryRow(`SELECT name FROM users WHERE id= $1`, user.ID)
 	err := row.Scan(&name)
+	log.Println(name)
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
 	_, err = r.db.Exec(`UPDATE users SET email_verified=true WHERE id=$1`, user.ID)
+	log.Println(user.ID, " ", user.EmailVerified)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -63,8 +66,8 @@ func (r AuthenRepositoryDb) VerifyEmail(user *user.User) error {
 }
 
 func (r AuthenRepositoryDb) Login(user *user.User) error {
-	row := r.db.QueryRow(`SELECT id, name, email, password, gender FROM users WHERE email=$1`, user.Email)
-	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Gender)
+	row := r.db.QueryRow(`SELECT id, name, email, password, gender, email_verified FROM users WHERE email=$1`, user.Email)
+	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Gender, &user.EmailVerified)
 	if err != nil {
 		return err
 	}
@@ -73,9 +76,9 @@ func (r AuthenRepositoryDb) Login(user *user.User) error {
 
 // ReadUserByID obviously to read by id
 func (r AuthenRepositoryDb) ReadUserByID(user *user.User) error {
-	row := r.db.QueryRow(`SELECT id, name, email, gender, created_at, updated_at, deleted_at FROM users WHERE id=$1`,
+	row := r.db.QueryRow(`SELECT id, name, email, gender, created_at, updated_at, deleted_at, email_verified FROM users WHERE id=$1`,
 		user.ID)
-	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Gender, &user.CreatedAt, &user.UpdatedAt, &user.DeletedAt)
+	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Gender, &user.CreatedAt, &user.UpdatedAt, &user.DeletedAt, &user.EmailVerified)
 	if err != nil {
 		return err
 	}

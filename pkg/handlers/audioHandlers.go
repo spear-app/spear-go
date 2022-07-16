@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
+	"github.com/spear-app/spear-go/pkg/domain/notification"
 	errs "github.com/spear-app/spear-go/pkg/err"
+	"github.com/spear-app/spear-go/pkg/middleware"
+	"github.com/spear-app/spear-go/pkg/service"
 	"io"
 	"log"
 	"mime/multipart"
@@ -19,27 +22,36 @@ import (
 	"time"
 )
 
+type AudioHandlers struct {
+	service service.NotificationService
+}
 type textAndDiarization struct {
 	Text        string `json:"text"`
 	Diarization string `json:"speaker"`
 }
-
 type StartConv struct {
-	Start_conversation bool `json:"start_conversation"`
+	Start_conversation bool   `json:"start_conversation"`
+	Language           string `json:"language"`
 }
 type EndConv struct {
 	End_conversation bool `json:"end_conversation"`
 }
+type EndDetection struct {
+	EndDetection bool `json:"end_detection"`
+}
 type AudioText struct {
 	Text string `json:"text"`
+}
+type Detection struct {
+	Sound string `json:"sound"`
 }
 
 var ConversationStarTime time.Time
 var CMD *exec.Cmd
+var language = "ar-EG"
 var conversationStarted bool
 
 func Wav(w http.ResponseWriter, r *http.Request) {
-
 	if !conversationStarted {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(errs.NewResponse("you didn't started a conversation yet", http.StatusBadRequest))
@@ -104,36 +116,46 @@ func Wav(w http.ResponseWriter, r *http.Request) {
 	textAndSpeakerResponse.Diarization, err = GetSpeakerFromDiartOutput("/home/rahma/sound_output/live_recording.rttm", float64(duration))
 	if err != nil {
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusOK))
+		textAndSpeakerResponse.Diarization = "no speaker found"
+		json.NewEncoder(w).Encode(textAndSpeakerResponse)
 		return
 	}
 	w.WriteHeader(200)
 	json.NewEncoder(w).Encode(textAndSpeakerResponse)
 	return
 }
-
 func GetText(filePath string) (string, error) {
 	prg := "/usr/bin/python3"
 	arg1 := "/home/rahma/spear-python/speech_to_text.py"
-	cmd, err := exec.Command(prg, arg1, filePath).Output()
+	//language = "en-US"
+	cmd := exec.Command(prg, arg1, filePath, language)
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(fmt.Sprint(err) + ": " + stderr.String())
 		return "", err
 	}
-	return string(cmd), nil
-}
+	return out.String(), nil
 
+}
 func PlayAudio(filePath string) (time.Time, error) {
 	prg := "/usr/bin/play"
 	audioPlayTime := time.Now()
-	_, err := exec.Command(prg, filePath).Output()
+	cmd := exec.Command(prg, filePath)
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
 	if err != nil {
-		log.Println(err)
+		log.Println(fmt.Sprint(err) + ": " + stderr.String())
 		return audioPlayTime, err
 	}
 	return audioPlayTime, nil
 }
-
 func SubtractTime(time1 time.Time, time2 time.Time) (int, error) {
 	hour1, min1, second1 := time1.Clock()
 	hour2, min2, second2 := time2.Clock()
@@ -146,32 +168,12 @@ func SubtractTime(time1 time.Time, time2 time.Time) (int, error) {
 	}
 	return duration, nil
 }
-
-func tmpStartConversation() (time.Time, error) {
-	timeout := time.After(10 * time.Second)
-	ticker := time.Tick(500 * time.Millisecond)
-
-	// Keep trying until we're timed out or get a result/error
-	for {
-		select {
-		case <-timeout:
-			return ConversationStarTime, errors.New("timed out, can't start conversation")
-		case <-ticker:
-			ok, err := exec.Command("source", "/home/rahma/GolandProjects/spear-go/pkg/scripts/diart_run.sh").Output()
-			if err != nil {
-				return ConversationStarTime, errors.New("couldn't set environment for diart")
-			} else if len(string(ok)) > 5 {
-				ConversationStarTime = time.Now()
-				return ConversationStarTime, nil
-			}
-		}
-	}
-}
-
 func StartConversation(w http.ResponseWriter, r *http.Request) {
+	DeleteRecordedAudioFiles("/home/rahma/conversation_audio/*")
 	w.Header().Add("Content-Type", "application/json")
 	//extracting usr obj
 	// TODO get user id
+
 	var strartConv StartConv
 	json.NewDecoder(r.Body).Decode(&strartConv)
 	if strartConv.Start_conversation == false {
@@ -179,7 +181,20 @@ func StartConversation(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(errs.NewResponse("conversation not started", http.StatusBadRequest))
 		return
 	}
+	var supportedLanguages = [5]string{"ar-EG", "en-US", "de-DE", "it-IT", "fr-BE"}
 
+	for _, lang := range supportedLanguages {
+		if strartConv.Language == lang {
+			language = lang
+			break
+		}
+	}
+
+	if language == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errs.NewResponse("you should specify language", http.StatusBadRequest))
+		return
+	}
 	log.Println("starting conversation .........")
 	cmd := exec.Command("bash", "-c", "source "+"/home/rahma/spear-go/pkg/scripts/diart_run4.sh")
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -252,18 +267,23 @@ func StartConversation(w http.ResponseWriter, r *http.Request) {
 			CMD = cmd
 			conversationStarted = true
 			go ContinueConversation()
+			log.Println("starting foo")
+			newtimer := time.NewTimer(15 * time.Minute)
+			go Foo(newtimer)
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(errs.NewResponse("conversation started successfully", http.StatusOK))
 			return
 		}
 	}
 }
-
 func ContinueConversation() {
 	CMD.Wait()
 }
-
 func killConversationProcess() error {
+	if CMD == nil {
+		log.Println("here process not started")
+		return errors.New("process is not started to be killed")
+	}
 	pgid, err := syscall.Getpgid(CMD.Process.Pid)
 	if err == nil {
 		log.Println("killing the process")
@@ -281,7 +301,6 @@ func killConversationProcess() error {
 	}
 	return nil
 }
-
 func EndConversation(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	//extracting usr obj
@@ -290,7 +309,7 @@ func EndConversation(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&endConv)
 	if endConv.End_conversation == false {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(errs.NewResponse("conversation not started", http.StatusBadRequest))
+		json.NewEncoder(w).Encode(errs.NewResponse("to end conversation set flag to true", http.StatusBadRequest))
 		return
 	}
 	err := killConversationProcess()
@@ -301,19 +320,6 @@ func EndConversation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-
-/*func GetSpeakersAndDurationInFiles() error {
-	cmd := exec.Command("bash", "-c", "/home/rahma/spear-go/pkg/scripts/awk_run.sh ~/sound_output/live_recording.rttm ~/out.txt/1T.txt ~/out.txt/1S.txt")
-	err := cmd.Run()
-	log.Println("run awk")
-	if err != nil {
-		return err
-	}
-	return nil
-}
-*/
-/*
- */
 func GetSpeakerFromDiartOutput(filePath string, audioStart float64) (string, error) {
 	// TODO redirect to another fixed size file
 	_, err := exec.Command("cp", filePath, "/home/rahma/out.txt/").Output()
@@ -354,6 +360,7 @@ func GetSpeakerFromDiartOutput(filePath string, audioStart float64) (string, err
 	}
 	if len(speakersInAudioInterval) == 0 {
 		readFile.Close()
+		log.Println("no speakers found")
 		return "", errors.New("no speakers found")
 	}
 	log.Println("map:\n", speakersInAudioInterval)
@@ -372,8 +379,8 @@ func GetSpeakerFromDiartOutput(filePath string, audioStart float64) (string, err
 	readFile.Close()
 	return "", errors.New("no speakers found")
 }
-
 func RecordedAudio(w http.ResponseWriter, r *http.Request) {
+	DeleteRecordedAudioFiles("/home/rahma/recorded_audio/*")
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	writer.FormDataContentType()
@@ -387,12 +394,14 @@ func RecordedAudio(w http.ResponseWriter, r *http.Request) {
 	tmpfile, err := os.Create(filePath)
 	defer tmpfile.Close()
 	if err != nil {
+		log.Println("here")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
 		return
 	}
 	_, err = io.Copy(tmpfile, file)
 	if err != nil {
+		log.Println("here2")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
 		return
@@ -405,12 +414,129 @@ func RecordedAudio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var audioText AudioText
+	log.Println("fileInWavPath ", fileInWav)
 	audioText.Text, err = GetText(fileInWav)
 	if err != nil {
+		log.Println("here3")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(audioText)
+}
+func DeleteRecordedAudioFiles(path string) {
+	cmd := exec.Command("bash", "-c", "rm -f "+path)
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		log.Println(fmt.Sprint(err) + ": " + stderr.String())
+	}
+}
+func (audio AudioHandlers) SoundDetection(w http.ResponseWriter, r *http.Request) {
+	DeleteRecordedAudioFiles("/home/rahma/detection_api_audios/*")
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	writer.FormDataContentType()
+	file, h, err := r.FormFile("audio")
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusBadRequest))
+		return
+	}
+	filePath := "/home/rahma/detection_api_audios/" + h.Filename
+	tmpfile, err := os.Create(filePath)
+	defer tmpfile.Close()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
+		return
+	}
+	_, err = io.Copy(tmpfile, file)
+	var command_output string
+	cmd := exec.Command("bash", "-c", "python3 /home/rahma/sound_detection/SoundDetection.py print_prediction "+filePath)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	stdout, err := cmd.StdoutPipe()
+	cmd.Stderr = cmd.Stdout
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrServerErr.Error(), http.StatusInternalServerError))
+		return
+	}
+	if err := cmd.Start(); err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errs.NewResponse(errs.ErrServerErr.Error(), http.StatusInternalServerError))
+		return
+	}
+	for {
+		tmp := make([]byte, 1024)
+		_, err := stdout.Read(tmp)
+		if err != nil {
+			// TODO kill process here
+			log.Println(err.Error())
+			break
+		}
+		str := string(tmp)
+		if len(str) != 0 {
+			command_output += str
+			//log.Println(str)
+		}
+	}
+	//var DetectionObj Detection
+	//log.Println(command_output)
+	var usrID int
+	usrID = middleware.ClaimsVar.UserId
+	var notiObj notification.Notification
+	if strings.Contains(command_output, "doorbell") {
+		//DetectionObj.Sound = "doorbell"
+		notiObj = setNotificationAttributes("doorbell", "there's doorbell sound near you", usrID)
+		err = audio.service.Create(&notiObj)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
+			return
+		}
+	} else if strings.Contains(command_output, "knock") {
+		//DetectionObj.Sound = "knock"
+		notiObj = setNotificationAttributes("knock", "there's knock sound near you", usrID)
+		fmt.Println("notiObj", notiObj)
+		err = audio.service.Create(&notiObj)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
+			return
+		}
+	} else {
+		//DetectionObj.Sound = "other"
+		notiObj.Title = "other"
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(notiObj)
+}
+func setNotificationAttributes(title string, body string, usrID int) notification.Notification {
+	var notiObj notification.Notification
+	notiObj.Title = title
+	notiObj.UserUID = usrID
+	notiObj.Body = body
+	return notiObj
+}
+func Foo(newtimer *time.Timer) {
+	<-newtimer.C
+
+	// Printed when timer is fired
+	log.Println("timer inactivated")
+	err := killConversationProcess()
+	if err != nil {
+		log.Println("couldn't kill process after 15 minutes")
+	}
+	stoptimer := newtimer.Stop()
+	if stoptimer {
+		log.Println("The timer is stopped!")
+	}
+	// Do heavy work
 }

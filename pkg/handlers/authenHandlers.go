@@ -104,6 +104,7 @@ func (authenHandler AuthenHandlers) Signup(w http.ResponseWriter, r *http.Reques
 	//inserting the hashed code into the database
 	userObj.OTP = string(hashOTP)
 	err = authenHandler.service.InsertOTP(&userObj)
+	fmt.Println("otp inserted")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
@@ -136,7 +137,6 @@ func (authenHandler AuthenHandlers) Signup(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(data)
 }
-
 func (authenHandler AuthenHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	var auth authen.Authen
@@ -184,10 +184,10 @@ func (authenHandler AuthenHandlers) Login(w http.ResponseWriter, r *http.Request
 
 	data.Token = token
 	//sending the response
+	fmt.Println("user logged in ", auth.User)
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(data)
 }
-
 func (authenHandler AuthenHandlers) ReadUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	params := mux.Vars(r) // Get params
@@ -207,7 +207,6 @@ func (authenHandler AuthenHandlers) ReadUser(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(&authen.User)
 }
-
 func (authenHandler AuthenHandlers) Update(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	params := mux.Vars(r)
@@ -271,7 +270,6 @@ func (authenHandler AuthenHandlers) Delete(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(errs.NewResponse("User has been deleted successfully", http.StatusOK))
 }
-
 func (authenHandler AuthenHandlers) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	var userObj user.User
 	json.NewDecoder(r.Body).Decode(&userObj)
@@ -291,7 +289,7 @@ func (authenHandler AuthenHandlers) VerifyEmail(w http.ResponseWriter, r *http.R
 	id := vars["id"]
 	//var userObj user.User
 	intId, err := strconv.Atoi(id)
-	fmt.Println(intId)
+	log.Println(intId)
 	userObj.ID = uint(intId)
 	err = authenHandler.service.ReadOTP(&userObj)
 	err = bcrypt.CompareHashAndPassword([]byte(userObj.OTP), []byte(otp))
@@ -308,7 +306,6 @@ func (authenHandler AuthenHandlers) VerifyEmail(w http.ResponseWriter, r *http.R
 	}
 	w.WriteHeader(http.StatusOK)
 }
-
 func validateNameAndGender(userObj user.User) error {
 	//err error()
 	if userObj.Name == "" {

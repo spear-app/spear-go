@@ -1,10 +1,15 @@
 package main
 
-import "github.com/spear-app/spear-go/pkg/handlers"
+import (
+	"fmt"
+	"github.com/spear-app/spear-go/pkg/handlers"
+	"log"
+)
 
 func main() {
-	err := handlers.PlayAudio("/home/rahma/conversation_audio/1.wav")
+	text, err := handlers.GetText("/home/rahma/recorded_audio/1.opusconverted.wav")
 	if err != nil {
-		println(err)
+		log.Println(err.Error())
 	}
+	fmt.Println(text)
 }

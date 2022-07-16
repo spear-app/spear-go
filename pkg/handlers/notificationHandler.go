@@ -19,10 +19,10 @@ import (
 type NotificationHandlers struct {
 	service service.NotificationService
 }
+
 var (
 	validate *validator.Validate
 )
-
 
 func (notificationHandler NotificationHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
@@ -33,14 +33,14 @@ func (notificationHandler NotificationHandlers) Create(w http.ResponseWriter, r 
 	fmt.Println(notiObj.Title, notiObj.Body, notiObj.UserUID)
 	err := validate.Struct(notiObj)
 
-	if err!=nil{
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusBadRequest))
 		return
 	}
-	
+
 	err = notificationHandler.service.Create(notiObj)
-	if err!=nil{
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
 		return
@@ -48,8 +48,17 @@ func (notificationHandler NotificationHandlers) Create(w http.ResponseWriter, r 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(notiObj)
 }
+func (notificationHandler NotificationHandlers) CreateNotificationInternally(notiObj *notification.Notification) error {
+	//validate = validator.New()
+	fmt.Println(notiObj.Title, notiObj.Body, notiObj.UserUID)
+	//err := validate.Struct(notiObj)
 
-
+	err := notificationHandler.service.Create(notiObj)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 func (notificationHandler NotificationHandlers) ReadByNotificationID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "applicatsion/json")
 
@@ -57,7 +66,7 @@ func (notificationHandler NotificationHandlers) ReadByNotificationID(w http.Resp
 	strId := params["id"]
 	id, err := strconv.Atoi(strId)
 
-	if err!=nil{
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(errs.NewResponse("invalid notification id", http.StatusBadRequest))
 		return
@@ -80,10 +89,6 @@ func (notificationHandler NotificationHandlers) ReadByNotificationID(w http.Resp
 		return
 	}
 }
-
-
-
-//TODO can't use postgres errNorows here, try to find a way later
 func (notificationHandler NotificationHandlers) ReadByUserID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "applicatsion/json")
 
@@ -91,14 +96,14 @@ func (notificationHandler NotificationHandlers) ReadByUserID(w http.ResponseWrit
 	strId := params["id"]
 	id, err := strconv.Atoi(strId)
 
-	if err!=nil{
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(errs.NewResponse("invalid user id", http.StatusBadRequest))
 		return
 	}
-	if middleware.ClaimsVar.UserId!=id{
+	if middleware.ClaimsVar.UserId != id {
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(errs.NewResponse("unauthorized process",http.StatusUnauthorized))
+		json.NewEncoder(w).Encode(errs.NewResponse("unauthorized process", http.StatusUnauthorized))
 		return
 	}
 	notifications, err := notificationHandler.service.ReadByUserID(id)
@@ -108,10 +113,10 @@ func (notificationHandler NotificationHandlers) ReadByUserID(w http.ResponseWrit
 		json.NewEncoder(w).Encode(errs.NewResponse("notifications not found", http.StatusNotFound))
 		return
 	case nil:
-		if len(notifications)==0{
+		if len(notifications) == 0 {
 			w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(errs.NewResponse("notifications not found", http.StatusNotFound))
-		return
+			json.NewEncoder(w).Encode(errs.NewResponse("notifications not found", http.StatusNotFound))
+			return
 		}
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(notifications)
