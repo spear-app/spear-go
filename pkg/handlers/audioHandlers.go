@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/spear-app/spear-go/pkg/domain/notification"
-	"github.com/spear-app/spear-go/pkg/driver"
 	errs "github.com/spear-app/spear-go/pkg/err"
 	"github.com/spear-app/spear-go/pkg/middleware"
 	"github.com/spear-app/spear-go/pkg/service"
@@ -23,11 +22,13 @@ import (
 	"time"
 )
 
+type AudioHandlers struct {
+	service service.NotificationService
+}
 type textAndDiarization struct {
 	Text        string `json:"text"`
 	Diarization string `json:"speaker"`
 }
-
 type StartConv struct {
 	Start_conversation bool   `json:"start_conversation"`
 	Language           string `json:"language"`
@@ -47,9 +48,7 @@ type Detection struct {
 
 var ConversationStarTime time.Time
 var CMD *exec.Cmd
-var language = ""
-
-//var CMDDetection *exec.Cmd
+var language = "ar-EG"
 var conversationStarted bool
 
 func Wav(w http.ResponseWriter, r *http.Request) {
@@ -125,7 +124,6 @@ func Wav(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(textAndSpeakerResponse)
 	return
 }
-
 func GetText(filePath string) (string, error) {
 	prg := "/usr/bin/python3"
 	arg1 := "/home/rahma/spear-python/speech_to_text.py"
@@ -143,7 +141,6 @@ func GetText(filePath string) (string, error) {
 	return out.String(), nil
 
 }
-
 func PlayAudio(filePath string) (time.Time, error) {
 	prg := "/usr/bin/play"
 	audioPlayTime := time.Now()
@@ -159,7 +156,6 @@ func PlayAudio(filePath string) (time.Time, error) {
 	}
 	return audioPlayTime, nil
 }
-
 func SubtractTime(time1 time.Time, time2 time.Time) (int, error) {
 	hour1, min1, second1 := time1.Clock()
 	hour2, min2, second2 := time2.Clock()
@@ -172,28 +168,6 @@ func SubtractTime(time1 time.Time, time2 time.Time) (int, error) {
 	}
 	return duration, nil
 }
-
-func tmpStartConversation() (time.Time, error) {
-	timeout := time.After(10 * time.Second)
-	ticker := time.Tick(500 * time.Millisecond)
-
-	// Keep trying until we're timed out or get a result/error
-	for {
-		select {
-		case <-timeout:
-			return ConversationStarTime, errors.New("timed out, can't start conversation")
-		case <-ticker:
-			ok, err := exec.Command("source", "/home/rahma/GolandProjects/spear-go/pkg/scripts/diart_run.sh").Output()
-			if err != nil {
-				return ConversationStarTime, errors.New("couldn't set environment for diart")
-			} else if len(string(ok)) > 5 {
-				ConversationStarTime = time.Now()
-				return ConversationStarTime, nil
-			}
-		}
-	}
-}
-
 func StartConversation(w http.ResponseWriter, r *http.Request) {
 	DeleteRecordedAudioFiles("/home/rahma/conversation_audio/")
 	w.Header().Add("Content-Type", "application/json")
@@ -302,11 +276,9 @@ func StartConversation(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
-
 func ContinueConversation() {
 	CMD.Wait()
 }
-
 func killConversationProcess() error {
 	if CMD == nil {
 		log.Println("here process not started")
@@ -329,7 +301,6 @@ func killConversationProcess() error {
 	}
 	return nil
 }
-
 func EndConversation(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	//extracting usr obj
@@ -349,19 +320,6 @@ func EndConversation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-
-/*func GetSpeakersAndDurationInFiles() error {
-	cmd := exec.Command("bash", "-c", "/home/rahma/spear-go/pkg/scripts/awk_run.sh ~/sound_output/live_recording.rttm ~/out.txt/1T.txt ~/out.txt/1S.txt")
-	err := cmd.Run()
-	log.Println("run awk")
-	if err != nil {
-		return err
-	}
-	return nil
-}
-*/
-/*
- */
 func GetSpeakerFromDiartOutput(filePath string, audioStart float64) (string, error) {
 	// TODO redirect to another fixed size file
 	_, err := exec.Command("cp", filePath, "/home/rahma/out.txt/").Output()
@@ -472,22 +430,7 @@ func DeleteRecordedAudioFiles(path string) {
 		log.Println("couldn't delete recorded audio files")
 	}
 }
-func Foo(newtimer *time.Timer) {
-	<-newtimer.C
-
-	// Printed when timer is fired
-	log.Println("timer inactivated")
-	err := killConversationProcess()
-	if err != nil {
-		log.Println("couldn't kill process after 15 minutes")
-	}
-	stoptimer := newtimer.Stop()
-	if stoptimer {
-		log.Println("The timer is stopped!")
-	}
-	// Do heavy work
-}
-func SoundDetection(w http.ResponseWriter, r *http.Request) {
+func (audio AudioHandlers) SoundDetection(w http.ResponseWriter, r *http.Request) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	writer.FormDataContentType()
@@ -538,8 +481,6 @@ func SoundDetection(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	//var DetectionObj Detection
-	dbConnection := driver.GetDbConnetion()
-	notificationHandler := NotificationHandlers{service.NewNotificationService(notification.NewNotificationRepositoryDb(dbConnection))}
 	//log.Println(command_output)
 	var usrID int
 	usrID = middleware.ClaimsVar.UserId
@@ -547,7 +488,7 @@ func SoundDetection(w http.ResponseWriter, r *http.Request) {
 	if strings.Contains(command_output, "doorbell") {
 		//DetectionObj.Sound = "doorbell"
 		notiObj = setNotificationAttributes("doorbell", "there's doorbell sound near you", usrID)
-		err = notificationHandler.CreateNotificationInternally(&notiObj)
+		err = audio.service.Create(&notiObj)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
@@ -557,7 +498,7 @@ func SoundDetection(w http.ResponseWriter, r *http.Request) {
 		//DetectionObj.Sound = "knock"
 		notiObj = setNotificationAttributes("knock", "there's knock sound near you", usrID)
 		fmt.Println("notiObj", notiObj)
-		err = notificationHandler.CreateNotificationInternally(&notiObj)
+		err = audio.service.Create(&notiObj)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(errs.NewResponse(err.Error(), http.StatusInternalServerError))
@@ -570,11 +511,26 @@ func SoundDetection(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(notiObj)
 }
-
 func setNotificationAttributes(title string, body string, usrID int) notification.Notification {
 	var notiObj notification.Notification
 	notiObj.Title = title
 	notiObj.UserUID = usrID
 	notiObj.Body = body
 	return notiObj
+}
+
+func Foo(newtimer *time.Timer) {
+	<-newtimer.C
+
+	// Printed when timer is fired
+	log.Println("timer inactivated")
+	err := killConversationProcess()
+	if err != nil {
+		log.Println("couldn't kill process after 15 minutes")
+	}
+	stoptimer := newtimer.Stop()
+	if stoptimer {
+		log.Println("The timer is stopped!")
+	}
+	// Do heavy work
 }
