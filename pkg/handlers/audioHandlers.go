@@ -360,6 +360,7 @@ func GetSpeakerFromDiartOutput(filePath string, audioStart float64) (string, err
 	}
 	if len(speakersInAudioInterval) == 0 {
 		readFile.Close()
+		log.Println("no speakers found")
 		return "", errors.New("no speakers found")
 	}
 	log.Println("map:\n", speakersInAudioInterval)
@@ -524,7 +525,6 @@ func setNotificationAttributes(title string, body string, usrID int) notificatio
 	notiObj.Body = body
 	return notiObj
 }
-
 func Foo(newtimer *time.Timer) {
 	<-newtimer.C
 
