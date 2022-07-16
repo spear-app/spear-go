@@ -169,7 +169,7 @@ func SubtractTime(time1 time.Time, time2 time.Time) (int, error) {
 	return duration, nil
 }
 func StartConversation(w http.ResponseWriter, r *http.Request) {
-	DeleteRecordedAudioFiles("/home/rahma/conversation_audio/")
+	DeleteRecordedAudioFiles("/home/rahma/conversation_audio/*")
 	w.Header().Add("Content-Type", "application/json")
 	//extracting usr obj
 	// TODO get user id
@@ -425,12 +425,18 @@ func RecordedAudio(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(audioText)
 }
 func DeleteRecordedAudioFiles(path string) {
-	_, err := exec.Command("bash", "-c", "rm -f"+path).Output()
+	cmd := exec.Command("bash", "-c", "rm -f "+path)
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
 	if err != nil {
-		log.Println("couldn't delete recorded audio files")
+		log.Println(fmt.Sprint(err) + ": " + stderr.String())
 	}
 }
 func (audio AudioHandlers) SoundDetection(w http.ResponseWriter, r *http.Request) {
+	DeleteRecordedAudioFiles("/home/rahma/detection_api_audios/*")
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	writer.FormDataContentType()
